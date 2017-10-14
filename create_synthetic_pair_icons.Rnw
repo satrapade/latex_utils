@@ -12,6 +12,8 @@
 \usetikzlibrary{external}
 \tikzexternalize[prefix=tikz-figures/] % activate!
 
+\renewcommand{\familydefault}{\sfdefault} % sans serif
+
 \begin{document}
 
 <<, cache=FALSE, eval=TRUE, echo=FALSE, message=FALSE, warning=FALSE, results="hide">>=

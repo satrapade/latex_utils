@@ -90,14 +90,14 @@ tikz_plot_matrix(
   content=apply(
     pair_matrix,
     1:2,
-    function(e)ifelse(match(pair2manager(e),managers,nomatch=0)>0,icon(e,width="18mm",height="18mm"),"")
+    function(e)ifelse(match(pair2manager(e),managers[1:5],nomatch=0)>0,icon(e,width="18mm",height="18mm"),"")
   ),
   node=apply(
     pair_matrix,
     1:2,
-    function(e)ifelse(match(pair2manager(e),managers[1],nomatch=0)>0,
-      "draw,inner sep=1pt,outer sep=0pt",
-      ""
+    function(e)ifelse(match(pair2manager(e),managers[5],nomatch=0)>0 & runif(1)>0.5,
+    "draw,inner sep=1pt,outer sep=0pt,fill=red!20",
+    "draw,inner sep=1pt,outer sep=0pt"
     )
   )
 )}} \\
