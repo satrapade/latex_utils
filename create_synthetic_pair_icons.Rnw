@@ -1,0 +1,198 @@
+\documentclass{article}
+
+\usepackage[portrait, headheight = 0cm, margin=0.25cm, top = 0.25cm, nofoot]{geometry} 
+\usepackage[export]{adjustbox} 
+\usepackage{graphicx}
+\usepackage[dvipsnames,table]{xcolor} % [dvipsnames,table] for setting colors \usepackage{amsmath} \usepackage{xfrac}
+\usepackage{xfrac}
+
+\usepackage{tikz}
+\usetikzlibrary{shapes.geometric}
+\usetikzlibrary{shapes.misc}
+\usetikzlibrary{external}
+\tikzexternalize[prefix=tikz-figures/] % activate!
+
+\begin{document}
+
+<<, cache=FALSE, eval=TRUE, echo=FALSE, message=FALSE, warning=FALSE, results="hide">>=
+PROJECT_DIRECTORY<-"H:/equity_one_pager/" # keep updated
+require(Hmisc)
+require(Rtsne)
+require(digest)
+require(stringi)
+require(readxl)
+require(scales)
+require(data.table)
+require(Matrix)
+require(Matrix.utils)
+require(clue)
+require(magick)
+source("utility_functions.R")
+source("sheet_utility_functions.R")
+source("latex_helpers_v2.R")
+
+managers<-sort(mapply(function(i)stri_flatten(sample(LETTERS,sample(c(2,3),1))),1:10))
+pairs<-sort(paste0(sample(managers,100,replace=TRUE),sample(1:1000,100)))
+stocks<-paste0("STOCK",1:500)
+
+manager_col<-assign_color(managers,col_alpha=1)
+pair_col<-assign_color(pairs,col_alpha=1)
+
+tret<-matrix(
+  rnorm(length(stocks)*1000,sd=0.01,mean=0),
+  ncol=length(stocks),
+  dimnames=list(1:1000,stocks)
+)
+
+adv<-matrix(
+  sample(1:100,length(stocks),replace=TRUE),
+  nrow=length(stocks),
+  ncol=1,
+  dimnames=list(stocks,NULL)
+)
+
+duke_pair_exposure<-mapply(function(i){
+  selected_stocks<-(seq_along(stocks) %in% sample(seq_along(stocks),sample(1:3,1)))
+  stock_direction<-sample(c(-1,1),length(stocks),replace=TRUE)
+  structure(selected_stocks*stock_direction,.Names=stocks)
+},pairs)
+
+manager_pairs<-structure(
+  diag(length(managers))[match(gsub("[0-9]+","",pairs),managers),],
+  dimnames=list(pairs,managers)
+)
+
+duke_manager_exposure<-duke_pair_exposure%*%manager_pairs
+
+duke_pair_days<-duke_pair_exposure*adv[,rep(1,ncol(duke_pair_exposure))]
+
+duke_exposure<-duke_pair_exposure%*%matrix(1,ncol=1,nrow=length(pairs))
+duke_long_exposure<-pmax(duke_exposure,0)
+duke_short_exposure<-pmax(-duke_exposure,0)
+duke_local_pnl<-tret%*%duke_exposure
+duke_pair_local_pnl<-tret%*%duke_pair_exposure
+duke_pair_long_pnl<-tret%*%pmax(duke_pair_exposure,0)
+duke_pair_short_pnl<-tret%*%pmax(-duke_pair_exposure,0)
+duke_manager_local_pnl<-tret%*%duke_manager_exposure
+duke_drop_one_manager_pnl<-duke_manager_local_pnl%*%(1-diag(length(managers)))
+duke_drop_one_pair_pnl<-duke_pair_local_pnl%*%(1-diag(length(pairs)))
+
+days<-apply(abs(duke_pair_days),2,max)
+msd<-100*10000*(sd(duke_local_pnl)-apply(duke_drop_one_pair_pnl,2,sd))
+
+days_text<-paste0("{v",ifelse(days<1,"\\bf ",""),round(days,digits=1),"}")
+msd_text<-paste0("r",ifelse(msd<0,"\\textcolor{black}{\\underline{(","\\textcolor{black}{"),abs(round(msd,digits=1)),ifelse(msd<0,")}}","}"))
+gross_text<-paste0("g",round(10000*apply(abs(duke_pair_exposure),2,sum),digits=0))
+grid_text<-paste0("\\begin{tabular}{@{}c@{\\hskip 2ex}c@{\\hskip 2ex}c@{}}",days_text," & ",msd_text," & ",gross_text,"\\end{tabular}")
+  
+pair_longs<-mapply(function(i){
+  s1<-rownames(duke_pair_exposure)[which(i>0)]
+  s2<-gsub("( [A-Z]{2} Equity$)|( Index$)","",s1)
+  s3<-paste0(s2,collapse="-")
+  if(nchar(s3)>12){
+    s4<-paste0("{\\small ",stri_sub(s3,1,12),"}",cross("black",size="1ex",raise="-0.2ex"))
+  }else{
+    s4<-paste("{\\small ",s3,"}")
+  }
+  s4
+},data.table(pmax(duke_pair_exposure,0)))
+
+pair_shorts<-mapply(function(i){
+  s1<-rownames(duke_pair_exposure)[which(i>0)]
+  s2<-gsub("( [A-Z]{2} Equity$)|( Index$)","",s1)
+  s3<-paste0(s2,collapse="-")
+  if(nchar(s3)>12){
+    s4<-paste0("{\\small ",stri_sub(s3,1,12),"}",cross("black",size="1ex",raise="-0.2ex"))
+  }else{
+    s4<-paste("{\\small ",s3,"}")
+  }
+  s4
+},data.table(pmax(-duke_pair_exposure,0)))
+
+pair_12m_sparks<-mapply(function(long_pnl,short_pnl){
+      long_px<-cumprod(c(0,tail(long_pnl,365))+1)
+      short_px<-cumprod(c(0,tail(short_pnl,365))+1)
+      rel_px<-rescale(long_px/short_px)
+      kpx<-kernapply(rel_px,kernel("daniell", 30))
+      smooth_px<-kpx[seq(1,length(kpx),length.out=20)]
+      res<-make_tikz_line(smooth_px,width=6,height=2,line_width=0.2,dot_size=0.5,units="mm",back_txt="")
+      paste0("\\fbox{",res,"}")
+  },data.table(duke_pair_long_pnl),data.table(duke_pair_short_pnl))
+
+pair_6m_sparks<-mapply(function(long_pnl,short_pnl){
+      long_px<-cumprod(c(0,tail(long_pnl,182))+1)
+      short_px<-cumprod(c(0,tail(short_pnl,182))+1)
+      rel_px<-rescale(long_px/short_px)
+      kpx<-kernapply(rel_px,kernel("daniell", 10))
+      smooth_px<-kpx[seq(1,length(kpx),length.out=20)]
+      res<-make_tikz_line(smooth_px,width=6,height=2,line_width=0.2,dot_size=0.5,units="mm",back_txt="")
+      paste0("\\fbox{",res,"}")
+  },data.table(duke_pair_long_pnl),data.table(duke_pair_short_pnl))
+
+pair_1m_sparks<-mapply(function(long_pnl,short_pnl){
+      long_px<-cumprod(c(0,tail(long_pnl,30))+1)
+      short_px<-cumprod(c(0,tail(short_pnl,30))+1)
+      rel_px<-rescale(long_px/short_px)
+      kpx<-kernapply(rel_px,kernel("daniell", 3))
+      smooth_px<-kpx[seq(1,length(kpx),length.out=20)]
+      res<-make_tikz_line(smooth_px,width=6,height=2,line_width=0.2,dot_size=0.5,units="mm",back_txt="")
+      paste0("\\fbox{",res,"}")
+  },data.table(duke_pair_long_pnl),data.table(duke_pair_short_pnl))
+
+pair_latest_action<-mapply(function(long_pnl,short_pnl){
+      pnl<-tail(long_pnl+short_pnl,21)
+      txt<-make_tikz_price_action(pnl,width=25,units="mm")
+      paste0(txt,collapse="")
+      
+    },data.table(duke_pair_long_pnl),data.table(duke_pair_short_pnl))
+
+pair_pm<-paste0("\\cellcolor{",pair2pm(colnames(duke_pair_days)),"!33}",colnames(duke_pair_days))
+
+pair_rng<-paste0("rng",round(apply(duke_pair_local_pnl,2,function(x){
+      px<-cumsum(tail(x,182))
+      100*(tail(px,1)-min(px))/diff(range(px))
+    }),digits=0))
+
+pair_rsi<-paste0("rsi",round(tail(rsi(duke_pair_local_pnl,14),1),digits=0))
+
+pair_stats<-structure(df_row2tabular(tm=rbind(c(1,2,3),c(4,5,6),c(7,8,9)),df=data.table(
+  days_text,msd_text,gross_text,
+  pair_rsi,pair_rng,rep(" ",length(pair_rsi)),
+  pair_12m_sparks,pair_6m_sparks,pair_1m_sparks
+),align="l"),.Names=colnames(duke_pair_days))
+
+#
+#
+#
+pair_icon_latex<-data.table(
+  pair=colnames(duke_pair_days),
+  pair_pm=pair_pm,
+  pair_latest_action=pair_latest_action,
+  pair_stats=pair_stats,
+  pair_longs=pair_longs,
+  pair_shorts=pair_shorts
+)[,
+  c(.SD,list(
+    latex=mapply(tbl,x=mapply(
+      c,
+      p=paste0("\\multicolumn{1}{@{}c@{}}{",pair_pm,"}"),
+      latest_action=paste0("\\multicolumn{1}{@{}c@{}}{",pair_latest_action,"}"),
+      technicals=paste0("\\multicolumn{1}{@{}c@{}}{",pair_stats,"}"),
+      longs=pair_longs,
+      shorts=pair_shorts,
+      SIMPLIFY = FALSE
+    ),MoreArgs=list(align="@{}p{3.0cm}@{}"))
+  ))
+]
+
+all_icons<-paste(mapply(make_external_latex,latex=pair_icon_latex$latex,file=pair_icon_latex$pair,SIMPLIFY=TRUE),collapse="\n")
+
+@
+
+\Sexpr{paste(manager_col$latex_col_def,collapse="")}
+
+\Sexpr{all_icons}
+
+\end{document}
+
+

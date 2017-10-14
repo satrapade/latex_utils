@@ -1,0 +1,70 @@
+\documentclass{article}
+
+\usepackage[portrait, headheight = 0cm, margin=0.25cm, top = 0.25cm, nofoot]{geometry} 
+\usepackage[export]{adjustbox} 
+\usepackage{graphicx}
+\usepackage[dvipsnames,table]{xcolor} % [dvipsnames,table] for setting colors \usepackage{amsmath} \usepackage{xfrac}
+\usepackage{xfrac}
+
+\usepackage{tikz}
+\usetikzlibrary{shapes.geometric}
+\usetikzlibrary{shapes.misc}
+
+\DeclareRobustCommand\Tstrut{\rule{0pt}{2.6ex}}         % = `top' strut
+\DeclareRobustCommand\Bstrut{\rule[-0.9ex]{0pt}{0pt}}   % = `bottom' strut
+\renewcommand{\familydefault}{\sfdefault}
+
+\begin{document}
+
+<<, cache=FALSE, eval=TRUE, echo=FALSE, message=FALSE, warning=FALSE, results="hide">>=
+PROJECT_DIRECTORY<-"" # keep updated
+require(Hmisc)
+require(Rtsne)
+require(digest)
+require(stringi)
+require(readxl)
+require(scales)
+require(data.table)
+require(Matrix)
+require(Matrix.utils)
+require(clue)
+require(pdftools)
+require(magick)
+
+source(paste0(PROJECT_DIRECTORY,"utility_functions.R"))
+source(paste0(PROJECT_DIRECTORY,"sheet_utility_functions.R"))
+source(paste0(PROJECT_DIRECTORY,"latex_helpers_v2.R"))
+
+image_info<-fread("images.csv")
+
+image_table<-data.table(
+  name=paste0("\\multicolumn{1}{|c}{\\bf ",image_info$name,"}"),
+  image=paste0("\\includegraphics[height=3cm,width=3cm,valign=T]{",image_info$file,"}")
+)
+
+image_table_align<-c("|m{3cm}","m{3cm}|")
+
+x<-do.call(data.table,split(image_table,(1:nrow(image_table))%%3))
+
+@
+
+
+\begin{center}
+\Sexpr{multi_ntable(
+  df=x,
+  title=large_bold("icon test"),
+  n=7,
+  fmt=list(
+    align=image_table_align,
+    halign="c",
+    add_rownames=FALSE,
+    alternating=FALSE,
+    row_end="\\hline"
+  )
+)}
+\end{center}
+
+
+\end{document}
+
+

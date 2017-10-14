@@ -2,9 +2,12 @@
 .Rhistory
 .RData
 .Ruserdata
+.DS_Store
 *.Rproj
 *.png
 *.tex
 *.log
 *.pdf
+*.csv
+init_files.R
 
