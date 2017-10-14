@@ -9,5 +9,9 @@
 *.log
 *.pdf
 *.csv
+*.aux
+*.auxlock
 init_files.R
+tikz-figures/*.*
+figure/*.*
 

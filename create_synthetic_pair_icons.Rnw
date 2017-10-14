@@ -77,6 +77,19 @@ duke_manager_local_pnl<-tret%*%duke_manager_exposure
 duke_drop_one_manager_pnl<-duke_manager_local_pnl%*%(1-diag(length(managers)))
 duke_drop_one_pair_pnl<-duke_pair_local_pnl%*%(1-diag(length(pairs)))
 
+write(data.table(duke_pair_exposure),"duke_pair_exposure.csv")
+write(data.table(duke_manager_exposure),"duke_manager_exposure.csv")
+fwrite(data.table(duke_exposure),"duke_exposure.csv")
+fwrite(data.table(duke_long_exposure),"duke_long_exposure.csv")
+fwrite(data.table(duke_short_exposure),"duke_short_exposure.csv")
+fwrite(data.table(duke_local_pnl),"duke_local_pnl.csv")
+fwrite(data.table(duke_pair_local_pnl),"duke_pair_local_pnl.csv")
+fwrite(data.table(duke_pair_long_pnl),"duke_pair_long_pnl.csv")
+fwrite(data.table(duke_pair_short_pnl),"duke_pair_short_pnl.csv")
+fwrite(data.table(duke_manager_local_pnl),"duke_manager_local_pnl.csv")
+fwrite(data.table(duke_drop_one_manager_pnl),"duke_drop_one_manager_pnl.csv")
+fwrite(data.table(duke_drop_one_pair_pnl),"duke_drop_one_pair_pnl.csv")
+
 days<-apply(abs(duke_pair_days),2,max)
 msd<-100*10000*(sd(duke_local_pnl)-apply(duke_drop_one_pair_pnl,2,sd))
 

@@ -149,7 +149,7 @@ ticker_class<-function(x){
 
 load_matrix<-function(fn){
   x<-fread(fn)
-  m<-as.matrix(x[,2:ncol(x)])
+  m<-as.matrix(x[-1])
   rownames(m)<-x[[1]]
   return(m)
 }
