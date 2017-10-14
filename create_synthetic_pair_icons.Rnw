@@ -36,7 +36,9 @@ pairs<-sort(paste0(sample(managers,100,replace=TRUE),sample(1:1000,100)))
 stocks<-paste0("STOCK",1:500)
 
 manager_col<-assign_color(managers,col_alpha=1)
+fwrite(manager_col,"manager_col.csv")
 pair_col<-assign_color(pairs,col_alpha=1)
+fwrite(pair_col,"pair_col.csv")
 
 tret<-matrix(
   rnorm(length(stocks)*1000,sd=0.01,mean=0),
@@ -77,8 +79,9 @@ duke_manager_local_pnl<-tret%*%duke_manager_exposure
 duke_drop_one_manager_pnl<-duke_manager_local_pnl%*%(1-diag(length(managers)))
 duke_drop_one_pair_pnl<-duke_pair_local_pnl%*%(1-diag(length(pairs)))
 
-write(data.table(duke_pair_exposure),"duke_pair_exposure.csv")
-write(data.table(duke_manager_exposure),"duke_manager_exposure.csv")
+fwrite(data.table(duke_pair_days),"duke_pair_days.csv")
+fwrite(data.table(duke_pair_exposure),"duke_pair_exposure.csv")
+fwrite(data.table(duke_manager_exposure),"duke_manager_exposure.csv")
 fwrite(data.table(duke_exposure),"duke_exposure.csv")
 fwrite(data.table(duke_long_exposure),"duke_long_exposure.csv")
 fwrite(data.table(duke_short_exposure),"duke_short_exposure.csv")

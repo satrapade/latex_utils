@@ -146,9 +146,10 @@ ticker_class<-function(x){
   ticker_patterns
 }
 
-
-load_matrix<-function(fn){
+#fn<-"duke_exposure.csv"
+load_matrix<-function(fn,row_names=TRUE){
   x<-fread(fn)
+  if(!row_names)return(as.matrix(x))
   m<-as.matrix(x[-1])
   rownames(m)<-x[[1]]
   return(m)

@@ -1,13 +1,23 @@
-%
-% scrape LUKE positions 
-% save data
-% produce a report
-%
-<<, cache=FALSE, eval=TRUE, echo=FALSE, message=FALSE, warning=FALSE, results="hide">>=
-# this needs to be the first line of any child doc, and it needs to be kept up-to-date
-PROJECT_DIRECTORY<-"" # keep updated
-set_parent(paste0(PROJECT_DIRECTORY,"luke_pair_risk_contributions.Rnw"))
-@
+
+\documentclass{article}
+
+\usepackage[portrait, headheight = 0cm, margin=0.25cm, top = 0.25cm, nofoot]{geometry} 
+\usepackage[export]{adjustbox} 
+\usepackage{graphicx}
+\usepackage[dvipsnames,table]{xcolor} % [dvipsnames,table] for setting colors \usepackage{amsmath} \usepackage{xfrac}
+\usepackage{tikz}
+\usetikzlibrary{shapes.geometric}
+\usetikzlibrary{shapes.misc}
+%\usetikzlibrary{external}
+%\tikzexternalize % activate!
+%\usepackage{sparklines}
+\usepackage{xfrac}
+
+\DeclareRobustCommand\Tstrut{\rule{0pt}{2.6ex}}         % = `top' strut
+\DeclareRobustCommand\Bstrut{\rule[-0.9ex]{0pt}{0pt}}   % = `bottom' strut
+\renewcommand{\familydefault}{\sfdefault}
+
+\begin{document}
 
 <<, cache=FALSE, eval=TRUE, echo=FALSE, message=FALSE, warning=FALSE, results="hide">>=
 require(Hmisc)
@@ -25,32 +35,52 @@ require(magick)
 @
 
 <<, cache=FALSE, eval=TRUE, echo=FALSE, message=FALSE, warning=FALSE, results="hide">>=
-source(paste0(PROJECT_DIRECTORY,"utility_functions.R"))
-source(paste0(PROJECT_DIRECTORY,"esheet_utility_functions.R"))
-source(paste0(PROJECT_DIRECTORY,"latex_helpers_v2.R"))
+source("utility_functions.R")
+source("sheet_utility_functions.R")
+source("latex_helpers_v2.R")
 @
 
 <<, cache=FALSE, eval=TRUE, echo=FALSE, message=FALSE, warning=FALSE, results="hide">>=
 
-duke_exposure<-load_matrix(paste0(PROJECT_DIRECTORY,"duke_exposure.csv"))
-duke_long_exposure<-load_matrix(paste0(PROJECT_DIRECTORY,"duke_long_exposure.csv"))
-duke_short_exposure<-load_matrix(paste0(PROJECT_DIRECTORY,"duke_short_exposure.csv"))
-duke_pair_exposure<-load_matrix(paste0(PROJECT_DIRECTORY,"duke_pair_exposure.csv"))
-duke_pair_days<-load_matrix(paste0(PROJECT_DIRECTORY,"duke_pair_days.csv"))
-duke_manager_exposure<-load_matrix(paste0(PROJECT_DIRECTORY,"duke_manager_exposure.csv"))
-duke_local_pnl<-load_matrix(paste0(PROJECT_DIRECTORY,"duke_local_pnl.csv"))
-duke_manager_local_pnl<-load_matrix(paste0(PROJECT_DIRECTORY,"duke_manager_local_pnl.csv"))
-duke_drop_one_manager_pnl<-load_matrix(paste0(PROJECT_DIRECTORY,"duke_drop_one_manager_pnl.csv"))
-duke_pair_local_pnl<-load_matrix(paste0(PROJECT_DIRECTORY,"duke_pair_local_pnl.csv"))
-duke_pair_long_pnl<-load_matrix(paste0(PROJECT_DIRECTORY,"duke_pair_long_pnl.csv"))
-duke_pair_short_pnl<-load_matrix(paste0(PROJECT_DIRECTORY,"duke_pair_short_pnl.csv"))
-duke_drop_one_pair_pnl<-load_matrix(paste0(PROJECT_DIRECTORY,"duke_drop_one_pair_pnl.csv"))
+duke_exposure<-load_matrix(paste0("duke_exposure.csv"),row_names = FALSE)
+duke_long_exposure<-load_matrix(paste0("duke_long_exposure.csv"),row_names = FALSE)
+duke_short_exposure<-load_matrix(paste0("duke_short_exposure.csv"),row_names = FALSE)
+duke_pair_exposure<-load_matrix(paste0("duke_pair_exposure.csv"),row_names = FALSE)
+duke_pair_days<-load_matrix(paste0("duke_pair_days.csv"),row_names = FALSE)
+duke_manager_exposure<-load_matrix(paste0("duke_manager_exposure.csv"),row_names = FALSE)
+duke_local_pnl<-load_matrix(paste0("duke_local_pnl.csv"),row_names = FALSE)
+duke_manager_local_pnl<-load_matrix(paste0("duke_manager_local_pnl.csv"),row_names = FALSE)
+duke_drop_one_manager_pnl<-load_matrix(paste0("duke_drop_one_manager_pnl.csv"),row_names = FALSE)
+duke_pair_local_pnl<-load_matrix(paste0("duke_pair_local_pnl.csv"),row_names = FALSE)
+duke_pair_long_pnl<-load_matrix(paste0("duke_pair_long_pnl.csv"),row_names = FALSE)
+duke_pair_short_pnl<-load_matrix(paste0("duke_pair_short_pnl.csv"),row_names = FALSE)
+duke_drop_one_pair_pnl<-load_matrix(paste0("duke_drop_one_pair_pnl.csv"),row_names = FALSE)
 
 manager_col<-fread("manager_col.csv")
 pair_col<-fread("pair_col.csv")
 
+images<-fread("images.csv")
+icon<-function(pair,height="3cm",width="3cm"){
+  images[,.SD,keyby=name][pair,paste0("\\includegraphics[height=",height,",width=",width,",valign=T]{",file,"}")]
+}
+
 @
 
+\section{icon positioning tests}
+
+\vskip 0.5cm
+
+\begin{center}
+\begin{tabular}{ |@{}m{10cm}@{}|@{}m{10cm}@{}|}
+\hline
+\Sexpr{icon(images$name[1],height="10cm",width="10cm")} & \Sexpr{icon(images$name[2],height="10cm",width="10cm")} \\
+\hline
+\Sexpr{icon(images$name[3],height="10cm",width="10cm")} & \Sexpr{icon(images$name[4],height="10cm",width="10cm")} \\
+\hline
+\end{tabular}
+\end{center}
+
+\newpage
 
 <<, cache=FALSE, eval=TRUE, echo=FALSE, message=FALSE, warning=FALSE, results="hide">>=
 
@@ -59,31 +89,9 @@ pair_col<-fread("pair_col.csv")
 #
 #
 pair_icon_latex<-data.table(
-  pair=colnames(duke_pair_days),
-  pair_pm=pair_pm,
-  pair_latest_action=pair_latest_action,
-  pair_stats=pair_stats,
-  pair_longs=pair_longs,
-  pair_shorts=pair_shorts
-)[,
-  c(.SD,list(
-    latex=mapply(tbl,x=mapply(
-      c,
-      p=paste0("\\multicolumn{1}{@{}c@{}}{",pair_pm,"}"),
-      latest_action=paste0("\\multicolumn{1}{@{}c@{}}{",pair_latest_action,"}"),
-      #text=grid_text,
-      technicals=paste0("\\multicolumn{1}{@{}c@{}}{",pair_stats,"}"),
-      #rsi14=paste0("14rsi ",round(tail(rsi(duke_pair_local_pnl,14),1),digits=0)),
-      #range_pos=pair_osc,
-      #spark=df_row2tabular(tm=rbind(c(1,2,3)),df=data.table(pair_12m_sparks,pair_sparks,pair_1m_sparks),align="c"),
-      longs=pair_longs,
-      shorts=pair_shorts,
-      SIMPLIFY = FALSE
-    ),MoreArgs=list(align="@{}p{3.0cm}@{}"))
-  ))
-]
-
-
+  pair=images$name,
+  latex=icon(images$name)
+)
 
 
 # table title
@@ -146,7 +154,7 @@ liquidity_vs_marginal_risk<-data.table(df2matrix(data.table(
 
 \begin{center}
 \scalebox{0.5}{
-\begin{tabular}{p{4cm} p{16cm}}
+\begin{tabular}{m{4cm} m{16cm}}
 \hline
 \multicolumn{2}{c}{\bf Table key} \\
 \hline
@@ -274,6 +282,8 @@ cor_vs_marginal_risk<-data.table(df2matrix(data.table(
 <<, cache=FALSE, eval=TRUE, echo=FALSE, message=FALSE, warning=FALSE, results="hide">>=
 
 @
+
+\end{document}
 
 
 
