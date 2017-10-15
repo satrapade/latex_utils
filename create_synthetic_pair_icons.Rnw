@@ -146,7 +146,7 @@ pair_sparkline<-function(
   rel_px<-rescale(long_px/short_px)
   kpx<-kernapply(rel_px,kernel("daniell",as.integer(length(rel_px)/10)))
   smooth_px<-kpx[seq(1,length(kpx),length.out=min(20,length(kpx)))]
-  res<-make_tikz_line(smooth_px,width=6,height=2,line_width=0.2,dot_size=0.5,units="mm",back_txt="")
+  res<-make_tikz_line(smooth_px,width=8,height=2,line_width=0.2,dot_size=0.5,units="mm",back_txt="")
   paste0("\\fbox{",res,"}")
 }
 
@@ -177,26 +177,28 @@ pair_technicals<-function(
 ){
   long_pnl<-duke_pair_long_pnl[,pair]
   short_pnl<-duke_pair_short_pnl[,pair]
-  long_px<-cumprod(c(0,tail(long_pnl,w))+1)
-  short_px<-cumprod(c(0,tail(short_pnl,w))+1)
+  long_px<-cumprod(c(0,long_pnl)+1)
+  short_px<-cumprod(c(0,short_pnl)+1)
   
   rel_px<-rescale(long_px/short_px)
-  rng<-100*(tail(rel_px,1)-min(rel_px))/diff(range(rel_px))
-  rsi<-round(tail(rsi(matrix(diff(rel_px),ncol=1),14),1),digits=0)
+  rng_w<-function(w)min(100*(tail(rel_px,1)-min(tail(rel_px,w)))/diff(range(tail(rel_px,w))),99)
+  rsi_w<-function(w)min(round(tail(rsi(matrix(diff(rel_px),ncol=1),w),1),digits=0),99)
   
   days<-max(abs(pair_days[,pair]))
   msd<-100*10000*(sd(local_pnl)-sd(drop_one_pair_pnl[,pair]))
   gross<-sum(abs(pair_exposure[,pair]))
   
   grid_text<-paste0(
-    "\\begin{tabular}{@{}l@{\\hskip 2ex}l@{\\hskip 2ex}l@{}}",
+    "\\begin{tabular}{@{}l@{\\hskip 1pt}l@{\\hskip 1pt}l@{}}",
     paste0("v",round(days,digits=1),collapse="")," & ",
     paste0("r",abs(round(msd,digits=1)),collapse="")," & ",
     paste0("g",round(10000*gross,digits=0),collapse=""),"\\\\",
-    paste0("rsi",round(rsi,digits=1),collapse="")," & ",
-    paste0("rng",abs(round(rng,digits=0)),collapse="")," & ",
-    paste0("","",collapse=""),"\\\\",
-    "12m & 6m & 1m \\\\",
+    paste0("{\\small\\sfrac{RSI}{3m}:",round(rsi_w(182),digits=1),collapse=""),"} & ",
+    paste0("{\\small\\sfrac{RSI}{1m}:",round(rsi_w(90),digits=1),collapse=""),"} & ",
+    paste0("{\\small\\sfrac{RSI}{2w}:",round(rsi_w(14),digits=1),collapse=""),"} \\\\ ",
+    paste0("{\\small12m:",abs(round(rng_w(360),digits=0)),collapse=""),"} & ",
+    paste0("{\\small6m:",abs(round(rng_w(182),digits=0)),collapse=""),"} & ",
+    paste0("{\\small1m:",abs(round(rng_w(30),digits=0)),collapse=""),"} \\\\ ",
     pair_sparkline(pair,w=365,pair_long_pnl=pair_long_pnl,pair_short_pnl=pair_short_pnl),"&",
     pair_sparkline(pair,w=182,pair_long_pnl=pair_long_pnl,pair_short_pnl=pair_short_pnl),"&",
     pair_sparkline(pair,w=30,pair_long_pnl=pair_long_pnl,pair_short_pnl=pair_short_pnl),"\\\\",
@@ -230,7 +232,7 @@ all_icons<-mapply(make_external_latex,latex=mapply(pair_icon,pairs),file=pairs,S
   \hline
   \multicolumn{2}{c}{\bf Table key} \\
   \hline
-  \Sexpr{all_icons[1]} 
+  \Sexpr{pair_icon(pairs[1])} 
   &
   \begin{tabular}{l}
   Pair id, color-coded by PM : \Sexpr{pm_color_code_key} \\
@@ -240,8 +242,9 @@ all_icons<-mapply(make_external_latex,latex=mapply(pair_icon,pairs),file=pairs,S
   (\Sexpr{cross("black",size="1ex",raise="0ex")}) flat  
   \\
   Size in ADV multiples / Marginal risk contribution in 100th's of daily bp volatility / Gross in bps \\
-  {\bf 14 day RSI}, last relative price location inside {\bf 6 month range} $100*\frac{LAST-LOW}{HIGH-LOW}$  \\
-  12m, 6m, 1m relative price plot, computed off current exposures. \Sexpr{dot("red")} low, \Sexpr{dot("green")} high \\
+  3 month RSI, 1 month RSI, 14 day RSI \\
+  Window lengths, last relative price range location $100*\frac{LAST-LOW}{HIGH-LOW}$ \\
+  Relative price plots \Sexpr{dot("red")} low, \Sexpr{dot("green")} high \\
   Long tickers, first 10 letters.  Final \Sexpr{cross("black",size="1ex")} if list was clipped to 10 letters due to length. \\
   Short tickers, first 10 letters.  Final \Sexpr{cross("black",size="1ex")} if list was clipped to 10 letters due to length. \\
   \end{tabular} \\

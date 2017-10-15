@@ -349,7 +349,7 @@ make_tikz_line<-function(
     tikz_txt,
     "\\fill[green] (",format(x[imax],scientific=FALSE),units,",",format(y[imax],scientific=FALSE),units,") circle(",dot_size,units,");",
     "\\fill[red] (",format(x[imin],scientific=FALSE),units,",",format(y[imin],scientific=FALSE),units,") circle(",dot_size,units,");",
-    "\\draw[line width=",line_width,units,"] ",path,";",
+    "\\draw[line width=",line_width,units,", inner sep=0pt, outer sep=0pt] ",path,";",
     "}"
   )
 }

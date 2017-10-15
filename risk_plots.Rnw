@@ -71,8 +71,7 @@ images<-fread("images.csv")
 icon<-function(icon_name,height="3cm",width="3cm",icon_table=images){
   icon_table[,.SD,keyby=name][icon_name,paste0("\\includegraphics[height=",height,",width=",width,",valign=T]{",file,"}")]
 }
-pair2manager<-function(p)gsub("[0-9]+$","",p)
-managers<-sort(unique(pair2manager(images$name)))
+managers<-sort(unique(pair2pm(images$name)))
 
 pair_layout<-data.table(
   x=round(runif(nrow(images),0,200),digits=0),
@@ -84,21 +83,6 @@ pair_matrix<-df2matrix(pair_layout)
 
 @
 
-
-
-<<, cache=FALSE, eval=TRUE, echo=FALSE, message=FALSE, warning=FALSE, results="hide">>=
-
-
-#
-#
-#
-pair_icon_latex<-data.table(
-  pair=images$name,
-  latex=icon(images$name)
-)
-
-
-@
 \newpage
 \Sexpr{paste(manager_col$latex_col_def,collapse="")}
 
@@ -107,7 +91,7 @@ pair_icon_latex<-data.table(
 liquidity_vs_marginal_risk<-df2matrix(data.table(
      x=apply(abs(duke_pair_days),2,max),
      y=sd(duke_local_pnl)-apply(duke_drop_one_pair_pnl,2,sd),
-     text=pair_layout$text
+     text=images$name
 ))
 
 @
@@ -125,12 +109,12 @@ tikz_plot_matrix(
   content=apply(
     liquidity_vs_marginal_risk,
     1:2,
-    function(e)ifelse(match(pair2manager(e),managers,nomatch=0)>0,icon(icon_name=e,width="18mm",height="18mm"),"")
+    function(e)ifelse(match(pair2pm(e),managers,nomatch=0)>0,icon(icon_name=e,width="18mm",height="18mm"),"")
   ),
   node=apply(
     liquidity_vs_marginal_risk,
     1:2,
-    function(e)ifelse(match(pair2manager(e),managers[5],nomatch=0)>0 & runif(1)>0.5,
+    function(e)ifelse(match(pair2pm(e),managers[5],nomatch=0)>0 & runif(1)>0.5,
     "draw,inner sep=1pt,outer sep=0pt,fill=red!20",
     "draw,inner sep=1pt,outer sep=0pt"
     )
@@ -153,7 +137,7 @@ tikz_plot_matrix(
 gross_vs_marginal_risk<-df2matrix(data.table(
      x=apply(abs(duke_pair_exposure),2,sum),
      y=sd(duke_local_pnl)-apply(duke_drop_one_pair_pnl,2,sd),
-     text=pair_layout$text
+     text=images$name
 ))
 
 @
@@ -171,12 +155,12 @@ tikz_plot_matrix(
   content=apply(
     gross_vs_marginal_risk,
     1:2,
-    function(e)ifelse(match(pair2manager(e),managers,nomatch=0)>0,icon(icon_name=e,width="18mm",height="18mm"),"")
+    function(e)ifelse(match(pair2pm(e),managers,nomatch=0)>0,icon(icon_name=e,width="18mm",height="18mm"),"")
   ),
   node=apply(
     gross_vs_marginal_risk,
     1:2,
-    function(e)ifelse(match(pair2manager(e),managers[5],nomatch=0)>0 & runif(1)>0.5,
+    function(e)ifelse(match(pair2pm(e),managers[5],nomatch=0)>0 & runif(1)>0.5,
     "draw,inner sep=1pt,outer sep=0pt,fill=red!20",
     "draw,inner sep=1pt,outer sep=0pt"
     )
