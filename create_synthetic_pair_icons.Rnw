@@ -80,8 +80,14 @@ duke_pair_local_pnl<-tret%*%duke_pair_exposure
 duke_pair_long_pnl<-tret%*%pmax(duke_pair_exposure,0)
 duke_pair_short_pnl<-tret%*%pmax(-duke_pair_exposure,0)
 duke_manager_local_pnl<-tret%*%duke_manager_exposure
-duke_drop_one_manager_pnl<-duke_manager_local_pnl%*%(1-diag(length(managers)))
-duke_drop_one_pair_pnl<-duke_pair_local_pnl%*%(1-diag(length(pairs)))
+duke_drop_one_manager_pnl<-structure(
+  duke_manager_local_pnl%*%(1-diag(length(managers))),
+  dimnames=dimnames(duke_manager_local_pnl)
+)
+duke_drop_one_pair_pnl<-structure(
+  duke_pair_local_pnl%*%(1-diag(length(pairs))),
+   dimnames=dimnames(duke_pair_local_pnl)
+)
 
 fwrite(data.table(duke_pair_days),"duke_pair_days.csv")
 fwrite(data.table(duke_pair_exposure),"duke_pair_exposure.csv")
@@ -105,121 +111,118 @@ pm_color_code_key<-paste0(
 )
 
 
-days<-apply(abs(duke_pair_days),2,max)
-msd<-100*10000*(sd(duke_local_pnl)-apply(duke_drop_one_pair_pnl,2,sd))
+#
+# pair icon elements
+#
 
-days_text<-paste0("{v",ifelse(days<1,"\\bf ",""),round(days,digits=1),"}")
-msd_text<-paste0("r",ifelse(msd<0,"\\textcolor{black}{\\underline{(","\\textcolor{black}{"),abs(round(msd,digits=1)),ifelse(msd<0,")}}","}"))
-gross_text<-paste0("g",round(10000*apply(abs(duke_pair_exposure),2,sum),digits=0))
-grid_text<-paste0("\\begin{tabular}{@{}c@{\\hskip 2ex}c@{\\hskip 2ex}c@{}}",days_text," & ",msd_text," & ",gross_text,"\\end{tabular}")
+# tickers in long/short leg
+pair_leg<-function(pair,exposure=duke_pair_exposure,direction=1,max_char=12){
+  i<-which(direction*exposure[,pair]>0)
+  s1<-rownames(exposure)[i]
+  s2<-gsub("( [A-Z]{2} Equity$)|( Index$)","",s1)
+  s3<-paste0(s2,collapse="-")
+  if(nchar(s3)>max_char){
+    s4<-paste0("{\\small ",stri_sub(s3,1,max_char),"}",cross("black",size="1ex",raise="-0.2ex"))
+  }else{
+    s4<-paste("{\\small ",s3,"}")
+  }
+  s4
+}
+
+# pair name color-coded with assigned pm color
+pair_with_pm_color<-function(pair)paste0("\\cellcolor{",pair2pm(pair),"!33}",pair)
+
+# pair sparline
+pair_sparkline<-function(
+  pair,
+  w=365,
+  pair_long_pnl=duke_pair_long_pnl,
+  pair_short_pnl=duke_pair_short_pnl
+){
+  long_pnl<-duke_pair_long_pnl[,pair]
+  short_pnl<-duke_pair_short_pnl[,pair]
+  long_px<-cumprod(c(0,tail(long_pnl,w))+1)
+  short_px<-cumprod(c(0,tail(short_pnl,w))+1)
+  rel_px<-rescale(long_px/short_px)
+  kpx<-kernapply(rel_px,kernel("daniell",as.integer(length(rel_px)/10)))
+  smooth_px<-kpx[seq(1,length(kpx),length.out=min(20,length(kpx)))]
+  res<-make_tikz_line(smooth_px,width=6,height=2,line_width=0.2,dot_size=0.5,units="mm",back_txt="")
+  paste0("\\fbox{",res,"}")
+}
+
+# recent pair price actions
+pair_price_action<-function(
+  pair,
+  pair_local_pnl=duke_pair_local_pnl,
+  w=21,
+  height=2,
+  width=30,
+  units="mm"
+){
+  pnl<-tail(pair_local_pnl[,pair],21)
+  txt<-make_tikz_price_action(pnl,width=width,height=height,units=units)
+  txt
+}
+
+# table with pair technical, positioning info
+pair_technicals<-function(
+  pair,
+  w=365,
+  pair_long_pnl=duke_pair_long_pnl,
+  pair_short_pnl=duke_pair_short_pnl,
+  pair_days=duke_pair_days,
+  local_pnl=duke_local_pnl,
+  drop_one_pair_pnl=duke_drop_one_pair_pnl,
+  pair_exposure=duke_pair_exposure
+){
+  long_pnl<-duke_pair_long_pnl[,pair]
+  short_pnl<-duke_pair_short_pnl[,pair]
+  long_px<-cumprod(c(0,tail(long_pnl,w))+1)
+  short_px<-cumprod(c(0,tail(short_pnl,w))+1)
   
-pair_longs<-mapply(function(i){
-  s1<-rownames(duke_pair_exposure)[which(i>0)]
-  s2<-gsub("( [A-Z]{2} Equity$)|( Index$)","",s1)
-  s3<-paste0(s2,collapse="-")
-  if(nchar(s3)>12){
-    s4<-paste0("{\\small ",stri_sub(s3,1,12),"}",cross("black",size="1ex",raise="-0.2ex"))
-  }else{
-    s4<-paste("{\\small ",s3,"}")
-  }
-  s4
-},data.table(pmax(duke_pair_exposure,0)))
+  rel_px<-rescale(long_px/short_px)
+  rng<-100*(tail(rel_px,1)-min(rel_px))/diff(range(rel_px))
+  rsi<-round(tail(rsi(matrix(diff(rel_px),ncol=1),14),1),digits=0)
+  
+  days<-max(abs(pair_days[,pair]))
+  msd<-100*10000*(sd(local_pnl)-sd(drop_one_pair_pnl[,pair]))
+  gross<-sum(abs(pair_exposure[,pair]))
+  
+  grid_text<-paste0(
+    "\\begin{tabular}{@{}l@{\\hskip 2ex}l@{\\hskip 2ex}l@{}}",
+    paste0("v",round(days,digits=1),collapse="")," & ",
+    paste0("r",abs(round(msd,digits=1)),collapse="")," & ",
+    paste0("g",round(10000*gross,digits=0),collapse=""),"\\\\",
+    paste0("rsi",round(rsi,digits=1),collapse="")," & ",
+    paste0("rng",abs(round(rng,digits=0)),collapse="")," & ",
+    paste0("","",collapse=""),"\\\\",
+    "12m & 6m & 1m \\\\",
+    pair_sparkline(pair,w=365,pair_long_pnl=pair_long_pnl,pair_short_pnl=pair_short_pnl),"&",
+    pair_sparkline(pair,w=182,pair_long_pnl=pair_long_pnl,pair_short_pnl=pair_short_pnl),"&",
+    pair_sparkline(pair,w=30,pair_long_pnl=pair_long_pnl,pair_short_pnl=pair_short_pnl),"\\\\",
+    "\\end{tabular}"
+  )
+  grid_text
+}
 
-pair_shorts<-mapply(function(i){
-  s1<-rownames(duke_pair_exposure)[which(i>0)]
-  s2<-gsub("( [A-Z]{2} Equity$)|( Index$)","",s1)
-  s3<-paste0(s2,collapse="-")
-  if(nchar(s3)>12){
-    s4<-paste0("{\\small ",stri_sub(s3,1,12),"}",cross("black",size="1ex",raise="-0.2ex"))
-  }else{
-    s4<-paste("{\\small ",s3,"}")
-  }
-  s4
-},data.table(pmax(-duke_pair_exposure,0)))
+pair_icon<-Vectorize(function(pair){
+  icon_items<-c(
+    paste0("\\multicolumn{1}{@{}c@{}}{",pair_with_pm_color(pair),"}"),
+    paste0("\\multicolumn{1}{@{}c@{}}{",pair_price_action(pair),"}"),
+    paste0("\\multicolumn{1}{@{}c@{}}{",pair_technicals(pair),"}"),
+    pair_leg(pair,direction=(1),exposure=duke_pair_exposure,max_char=12),
+    pair_leg(pair,direction=(-1),exposure=duke_pair_exposure,max_char=12)
+  )
+  tbl(x=icon_items,sep=" \\\\ \n",align="@{}p{3.0cm}@{}")
+})
 
-pair_12m_sparks<-mapply(function(long_pnl,short_pnl){
-      long_px<-cumprod(c(0,tail(long_pnl,365))+1)
-      short_px<-cumprod(c(0,tail(short_pnl,365))+1)
-      rel_px<-rescale(long_px/short_px)
-      kpx<-kernapply(rel_px,kernel("daniell", 30))
-      smooth_px<-kpx[seq(1,length(kpx),length.out=20)]
-      res<-make_tikz_line(smooth_px,width=6,height=2,line_width=0.2,dot_size=0.5,units="mm",back_txt="")
-      paste0("\\fbox{",res,"}")
-  },data.table(duke_pair_long_pnl),data.table(duke_pair_short_pnl))
-
-pair_6m_sparks<-mapply(function(long_pnl,short_pnl){
-      long_px<-cumprod(c(0,tail(long_pnl,182))+1)
-      short_px<-cumprod(c(0,tail(short_pnl,182))+1)
-      rel_px<-rescale(long_px/short_px)
-      kpx<-kernapply(rel_px,kernel("daniell", 10))
-      smooth_px<-kpx[seq(1,length(kpx),length.out=20)]
-      res<-make_tikz_line(smooth_px,width=6,height=2,line_width=0.2,dot_size=0.5,units="mm",back_txt="")
-      paste0("\\fbox{",res,"}")
-  },data.table(duke_pair_long_pnl),data.table(duke_pair_short_pnl))
-
-pair_1m_sparks<-mapply(function(long_pnl,short_pnl){
-      long_px<-cumprod(c(0,tail(long_pnl,30))+1)
-      short_px<-cumprod(c(0,tail(short_pnl,30))+1)
-      rel_px<-rescale(long_px/short_px)
-      kpx<-kernapply(rel_px,kernel("daniell", 3))
-      smooth_px<-kpx[seq(1,length(kpx),length.out=20)]
-      res<-make_tikz_line(smooth_px,width=6,height=2,line_width=0.2,dot_size=0.5,units="mm",back_txt="")
-      paste0("\\fbox{",res,"}")
-  },data.table(duke_pair_long_pnl),data.table(duke_pair_short_pnl))
-
-pair_latest_action<-mapply(function(long_pnl,short_pnl){
-      pnl<-tail(long_pnl+short_pnl,21)
-      txt<-make_tikz_price_action(pnl,width=30,height=2,units="mm")
-      paste0(txt,collapse="")
-      
-    },data.table(duke_pair_long_pnl),data.table(duke_pair_short_pnl))
-
-pair_pm<-paste0("\\cellcolor{",pair2pm(colnames(duke_pair_days)),"!33}",colnames(duke_pair_days))
-
-pair_rng<-paste0("rng",round(apply(duke_pair_local_pnl,2,function(x){
-      px<-cumsum(tail(x,182))
-      100*(tail(px,1)-min(px))/diff(range(px))
-    }),digits=0))
-
-pair_rsi<-paste0("rsi",round(tail(rsi(duke_pair_local_pnl,14),1),digits=0))
-
-pair_stats<-structure(df_row2tabular(tm=rbind(c(1,2,3),c(4,5,6),c(7,8,9)),df=data.table(
-  days_text,msd_text,gross_text,
-  pair_rsi,pair_rng,rep(" ",length(pair_rsi)),
-  pair_12m_sparks,pair_6m_sparks,pair_1m_sparks
-),align="l"),.Names=colnames(duke_pair_days))
-
-#
-#
-#
-pair_icon_latex<-data.table(
-  pair=colnames(duke_pair_days),
-  pair_pm=pair_pm,
-  pair_latest_action=pair_latest_action,
-  pair_stats=pair_stats,
-  pair_longs=pair_longs,
-  pair_shorts=pair_shorts
-)[,
-  c(.SD,list(
-    latex=mapply(tbl,x=mapply(
-      c,
-      p=paste0("\\multicolumn{1}{@{}c@{}}{",pair_pm,"}"),
-      latest_action=paste0("\\multicolumn{1}{@{}c@{}}{",pair_latest_action,"}"),
-      technicals=paste0("\\multicolumn{1}{@{}c@{}}{",pair_stats,"}"),
-      longs=pair_longs,
-      shorts=pair_shorts,
-      SIMPLIFY = FALSE
-    ),MoreArgs=list(align="@{}p{3.0cm}@{}"))
-  ))
-]
-
-all_icons<-paste(mapply(make_external_latex,latex=pair_icon_latex$latex,file=pair_icon_latex$pair,SIMPLIFY=TRUE),collapse="\n")
+all_icons<-mapply(make_external_latex,latex=mapply(pair_icon,pairs),file=pairs,SIMPLIFY=TRUE)
 
 @
 
 \Sexpr{paste(manager_col$latex_col_def,collapse="")}
 
-\Sexpr{all_icons}
+\Sexpr{paste(all_icons,collapse="\n")}
 
 \tikzsetnextfilename{ICONKEY}
 \tikz{\path (0,0) node[inner sep=0,outer sep=0]{
@@ -227,14 +230,18 @@ all_icons<-paste(mapply(make_external_latex,latex=pair_icon_latex$latex,file=pai
   \hline
   \multicolumn{2}{c}{\bf Table key} \\
   \hline
-  \Sexpr{pair_icon_latex$latex[1]} 
+  \Sexpr{all_icons[1]} 
   &
   \begin{tabular}{l}
   Pair id, color-coded by PM : \Sexpr{pm_color_code_key} \\
-  3 weeks price action: (\Sexpr{triangle_up("green")}) up, (\Sexpr{triangle_dn("red")}) dn, (\Sexpr{cross("black",size="1ex",raise="0ex")}) flat  \\
+  21 day's price action: 
+  (\Sexpr{triangle_up("green")}) up, 
+  (\Sexpr{triangle_dn("red")}) dn, 
+  (\Sexpr{cross("black",size="1ex",raise="0ex")}) flat  
+  \\
   Size in ADV multiples / Marginal risk contribution in 100th's of daily bp volatility / Gross in bps \\
-  {\bf 14 day RSI} RSI, last relative price location inside {\bf 6 month range} $100*\frac{LAST-LOW}{HIGH-LOW}$  \\
-  12m, 6m, 1m relative price plot, current exposures, same as Bloomberg CIX. \Sexpr{dot("red")} low, \Sexpr{dot("green")} high \\
+  {\bf 14 day RSI}, last relative price location inside {\bf 6 month range} $100*\frac{LAST-LOW}{HIGH-LOW}$  \\
+  12m, 6m, 1m relative price plot, computed off current exposures. \Sexpr{dot("red")} low, \Sexpr{dot("green")} high \\
   Long tickers, first 10 letters.  Final \Sexpr{cross("black",size="1ex")} if list was clipped to 10 letters due to length. \\
   Short tickers, first 10 letters.  Final \Sexpr{cross("black",size="1ex")} if list was clipped to 10 letters due to length. \\
   \end{tabular} \\
