@@ -30,16 +30,136 @@ require(Matrix)
 require(Matrix.utils)
 require(clue)
 require(magick)
-source("utility_functions.R")
-source("sheet_utility_functions.R")
-source("latex_helpers_v2.R")
+# source("utility_functions.R")
+# source("sheet_utility_functions.R")
+# source("latex_helpers_v2.R")
 
-df<-data.table(x=paste0("x",1:73),y=paste0("y",1:73),z=paste0("z",1:73))
-side_by_side_count<-3
-lines_per_page_count<-20
 @
 
 
-\Sexpr{make_df_layout(df,side_by_side_count=side_by_side_count,lines_per_page_count=lines_per_page_count)}
+\begin{tabular}[c]{m{6cm}}
+\begin{tabular}[c]{m{2cm}p{4cm}}
+\multicolumn{1}{ m{2cm} }{ pair } & \multicolumn{1}{ p{4cm} }{ details }  \\ 
+\hline 
+\includegraphics[height=20mm,width=20mm,valign=T]{tikz-figures/RJ560.pdf} 
+& 
+\begin{tabular}[c]{ r@{\hskip 1pt} l r@{\hskip 1pt}l}
+{\small gross}&3&{\small mrisk}&0\\ 
+{\small umrisk}&0&{\small adv}&83\\ 
+\end{tabular} 
+\end{tabular} 
+\end{tabular}
+
+\rowcolors{2}{gray!25}{white} 
+\begin{tabular}[c]{m{6cm}m{6cm}m{6cm}}
+\hline 
+\rowcolor{gray!20}
+\multicolumn{3}{c}{{\bf Pair detail}} \\ 
+\rowcolor{white}
+
+\begin{minipage}[t][25cm][t]{6cm}
+\rowcolors{2}{gray!25}{white} 
+\begin{tabular}[c]{m{2cm}p{4cm}}
+\multicolumn{1}{ m{2cm} }{ pair } & \multicolumn{1}{ p{4cm} }{ details }  \\ 
+\hline 
+\begin{minipage}[t]{2cm}
+\includegraphics[height=20mm,width=20mm,valign=T]{tikz-figures/RJ560.pdf} 
+\end{minipage}
+& 
+\begin{minipage}[t]{4cm}
+\begin{tabular}{ l l l l}
+{\small gross}&3&{\small mrisk}&0\\ 
+{\small umrisk}&0&{\small adv}&83\\ 
+\end{tabular}  
+\end{minipage}
+\\
+\includegraphics[height=20mm,width=20mm,valign=T]{tikz-figures/RJ718.pdf} 
+& 
+\begin{tabular}[c]{@{}l@{\hskip 1pt}@{\hskip 1pt}l@{\hskip 1pt}@{\hskip 1pt}l@{\hskip 1pt}@{\hskip 1pt}l@{}}
+{\small gross} & 1 & {\small mrisk} & 0 \\ 
+{\small umrisk} & 0 & {\small adv} & 3 \\ 
+\end{tabular}  \\ 
+\end{tabular} 
+\end{minipage} 
+
+& 
+\begin{minipage}[t][25cm][t]{6cm}
+\rowcolors{2}{gray!25}{white} 
+\begin{tabular}[c]{m{2cm}p{4cm}}
+\multicolumn{1}{ m{2cm} }{ pair } & \multicolumn{1}{ p{4cm} }{ details }  \\ 
+\hline 
+\includegraphics[height=20mm,width=20mm,valign=T]{tikz-figures/RJ579.pdf} & \begin{tabular}[c]{@{}l@{\hskip 1pt}@{\hskip 1pt}l@{\hskip 1pt}@{\hskip 1pt}l@{\hskip 1pt}@{\hskip 1pt}l@{}}
+{\small gross} & 1 & {\small mrisk} & 0 \\ 
+{\small umrisk} & 0 & {\small adv} & 52 \\ 
+\end{tabular}  \\ 
+\includegraphics[height=20mm,width=20mm,valign=T]{tikz-figures/RJ833.pdf} & \begin{tabular}[c]{@{}l@{\hskip 1pt}@{\hskip 1pt}l@{\hskip 1pt}@{\hskip 1pt}l@{\hskip 1pt}@{\hskip 1pt}l@{}}
+{\small gross} & 3 & {\small mrisk} & 0 \\ 
+{\small umrisk} & 0 & {\small adv} & 98 \\ 
+\end{tabular}  \\ 
+\includegraphics[height=20mm,width=20mm,valign=T]{tikz-figures/RJ981.pdf} & \begin{tabular}[c]{@{}l@{\hskip 1pt}@{\hskip 1pt}l@{\hskip 1pt}@{\hskip 1pt}l@{\hskip 1pt}@{\hskip 1pt}l@{}}
+{\small gross} & 3 & {\small mrisk} & 0 \\ 
+{\small umrisk} & 0 & {\small adv} & 67 \\ 
+\end{tabular}  \\ 
+\includegraphics[height=20mm,width=20mm,valign=T]{tikz-figures/UX548.pdf} & \begin{tabular}[c]{@{}l@{\hskip 1pt}@{\hskip 1pt}l@{\hskip 1pt}@{\hskip 1pt}l@{\hskip 1pt}@{\hskip 1pt}l@{}}
+{\small gross} & 2 & {\small mrisk} & 0 \\ 
+{\small umrisk} & 0 & {\small adv} & 51 \\ 
+\end{tabular}  \\ 
+\includegraphics[height=20mm,width=20mm,valign=T]{tikz-figures/UX809.pdf} & \begin{tabular}[c]{@{}l@{\hskip 1pt}@{\hskip 1pt}l@{\hskip 1pt}@{\hskip 1pt}l@{\hskip 1pt}@{\hskip 1pt}l@{}}
+{\small gross} & 1 & {\small mrisk} & 0 \\ 
+{\small umrisk} & 0 & {\small adv} & 52 \\ 
+\end{tabular}  \\ 
+\includegraphics[height=20mm,width=20mm,valign=T]{tikz-figures/UX928.pdf} & \begin{tabular}[c]{@{}l@{\hskip 1pt}@{\hskip 1pt}l@{\hskip 1pt}@{\hskip 1pt}l@{\hskip 1pt}@{\hskip 1pt}l@{}}
+{\small gross} & 3 & {\small mrisk} & 0 \\ 
+{\small umrisk} & 0 & {\small adv} & 74 \\ 
+\end{tabular}  \\ 
+\includegraphics[height=20mm,width=20mm,valign=T]{tikz-figures/WI251.pdf} & \begin{tabular}[c]{@{}l@{\hskip 1pt}@{\hskip 1pt}l@{\hskip 1pt}@{\hskip 1pt}l@{\hskip 1pt}@{\hskip 1pt}l@{}}
+{\small gross} & 1 & {\small mrisk} & 0 \\ 
+{\small umrisk} & 0 & {\small adv} & 70 \\ 
+\end{tabular}  \\ 
+\includegraphics[height=20mm,width=20mm,valign=T]{tikz-figures/WI888.pdf} & \begin{tabular}[c]{@{}l@{\hskip 1pt}@{\hskip 1pt}l@{\hskip 1pt}@{\hskip 1pt}l@{\hskip 1pt}@{\hskip 1pt}l@{}}
+{\small gross} & 2 & {\small mrisk} & 0 \\ 
+{\small umrisk} & 0 & {\small adv} & 90 \\ 
+\end{tabular}  \\ 
+\end{tabular} 
+\end{minipage} 
+& 
+\begin{minipage}[t][25cm][t]{6cm}\rowcolors{2}{gray!25}{white} 
+\begin{tabular}[c]{m{2cm}p{4cm}}
+\multicolumn{1}{ m{2cm} }{ pair } & \multicolumn{1}{ p{4cm} }{ details }  \\ 
+\hline 
+\includegraphics[height=20mm,width=20mm,valign=T]{tikz-figures/RJ554.pdf} & \begin{tabular}[c]{@{}l@{\hskip 1pt}@{\hskip 1pt}l@{\hskip 1pt}@{\hskip 1pt}l@{\hskip 1pt}@{\hskip 1pt}l@{}}
+{\small gross} & 1 & {\small mrisk} & 0 \\ 
+{\small umrisk} & 0 & {\small adv} & 74 \\ 
+\end{tabular}  \\ 
+\includegraphics[height=20mm,width=20mm,valign=T]{tikz-figures/RJ596.pdf} & \begin{tabular}[c]{@{}l@{\hskip 1pt}@{\hskip 1pt}l@{\hskip 1pt}@{\hskip 1pt}l@{\hskip 1pt}@{\hskip 1pt}l@{}}
+{\small gross} & 1 & {\small mrisk} & 0 \\ 
+{\small umrisk} & 0 & {\small adv} & 81 \\ 
+\end{tabular}  \\ 
+\includegraphics[height=20mm,width=20mm,valign=T]{tikz-figures/RJ840.pdf} & \begin{tabular}[c]{@{}l@{\hskip 1pt}@{\hskip 1pt}l@{\hskip 1pt}@{\hskip 1pt}l@{\hskip 1pt}@{\hskip 1pt}l@{}}
+{\small gross} & 1 & {\small mrisk} & 0 \\ 
+{\small umrisk} & 0 & {\small adv} & 89 \\ 
+\end{tabular}  \\ 
+\includegraphics[height=20mm,width=20mm,valign=T]{tikz-figures/UX298.pdf} & \begin{tabular}[c]{@{}l@{\hskip 1pt}@{\hskip 1pt}l@{\hskip 1pt}@{\hskip 1pt}l@{\hskip 1pt}@{\hskip 1pt}l@{}}
+{\small gross} & 3 & {\small mrisk} & 0 \\ 
+{\small umrisk} & 0 & {\small adv} & 97 \\ 
+\end{tabular}  \\ 
+\includegraphics[height=20mm,width=20mm,valign=T]{tikz-figures/UX617.pdf} & \begin{tabular}[c]{@{}l@{\hskip 1pt}@{\hskip 1pt}l@{\hskip 1pt}@{\hskip 1pt}l@{\hskip 1pt}@{\hskip 1pt}l@{}}
+{\small gross} & 1 & {\small mrisk} & 0 \\ 
+{\small umrisk} & 0 & {\small adv} & 40 \\ 
+\end{tabular}  \\ 
+\includegraphics[height=20mm,width=20mm,valign=T]{tikz-figures/UX858.pdf} & \begin{tabular}[c]{@{}l@{\hskip 1pt}@{\hskip 1pt}l@{\hskip 1pt}@{\hskip 1pt}l@{\hskip 1pt}@{\hskip 1pt}l@{}}
+{\small gross} & 1 & {\small mrisk} & 0 \\ 
+{\small umrisk} & 0 & {\small adv} & 93 \\ 
+\end{tabular}  \\ 
+\includegraphics[height=20mm,width=20mm,valign=T]{tikz-figures/WI238.pdf} & \begin{tabular}[c]{@{}l@{\hskip 1pt}@{\hskip 1pt}l@{\hskip 1pt}@{\hskip 1pt}l@{\hskip 1pt}@{\hskip 1pt}l@{}}
+{\small gross} & 3 & {\small mrisk} & 0 \\ 
+{\small umrisk} & 0 & {\small adv} & 89 \\ 
+\end{tabular}  \\ 
+\includegraphics[height=20mm,width=20mm,valign=T]{tikz-figures/WI278.pdf} & \begin{tabular}[c]{@{}l@{\hskip 1pt}@{\hskip 1pt}l@{\hskip 1pt}@{\hskip 1pt}l@{\hskip 1pt}@{\hskip 1pt}l@{}}
+{\small gross} & 2 & {\small mrisk} & 0 \\ 
+{\small umrisk} & 0 & {\small adv} & 35 \\ 
+\end{tabular}  \\ 
+\end{tabular} \end{minipage} \\ 
+\end{tabular} 
 
 \end{document}

@@ -305,6 +305,7 @@ make_df_layout<-function(
   side_by_side_count=3,
   lines_per_page_count=20,
   title=NULL,
+  align=paste0("@{\\hskip 2pt}m{",floor(20/side_by_side_count),"cm}"),
   fmt=list(add_rownames=FALSE)
 ){
   m<-matrix(0,ncol=side_by_side_count,nrow=ceiling(nrow(df)/side_by_side_count))
@@ -317,9 +318,18 @@ make_df_layout<-function(
   page_layouts<-mapply(function(i){
     df_rows<-mapply(function(j)as.integer(res[i,j][grepl("^[0-9]+$",res[i,j])]),1:ncol(res),SIMPLIFY=FALSE)
     df_subsets<-mapply(function(r)df[r,],df_rows,SIMPLIFY = FALSE)
-    df_side_by_side<-mapply(ntable,df=df_subsets,MoreArgs=fmt,SIMPLIFY=FALSE)
+    df_side_by_side<-mapply(function(df,fmt){
+      args<-c(list(df=df),fmt)
+      paste0(
+        paste0("\\begin{minipage}[t][25cm][t]{",floor(20/side_by_side_count),"cm}"),
+        do.call(ntable,args),
+        "\\end{minipage}"
+      )
+    },df=df_subsets,MoreArgs=list(fmt=fmt),SIMPLIFY=FALSE)
     df1<-do.call(data.table,df_side_by_side)
-    page<-ntable(df1,add_rownames=FALSE,add_header=FALSE,title=title)
+    page_items<-paste0(range(mapply(c,df_rows)),collapse="-")
+    page_title<-paste0(title," : ",page_items," of ",nrow(df))
+    page<-ntable(df1,add_rownames=FALSE,add_header=FALSE,title=page_title,align=align)
     paste0("\n",page,"\n\n\\newpage\n\n")
   },pages,SIMPLIFY=FALSE)
   do.call(paste,page_layouts)

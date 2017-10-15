@@ -69,7 +69,11 @@ pm_color_code_key<-paste0(
 keys<-fread("keys.csv")
 images<-fread("images.csv")
 icon<-function(icon_name,height="3cm",width="3cm",icon_table=images){
-  icon_table[,.SD,keyby=name][icon_name,paste0("\\includegraphics[height=",height,",width=",width,",valign=T]{",file,"}")]
+  icon_table[,.SD,keyby=name][icon_name,paste0(
+    paste0("\\begin{minipage}[t]{",width,"}"),
+    "\\includegraphics[height=",height,",width=",width,",valign=T]{",file,"}",
+    "\\end{minipage}"
+    )]
 }
 managers<-sort(unique(pair2pm(images$name)))
 
@@ -277,7 +281,17 @@ plot_diversification_paths<-expression({
 <<, cache=FALSE, eval=TRUE, echo=FALSE, message=FALSE, warning=FALSE, results="hide">>=
 
 pair_stat_matrix<-mapply(function(m){
-  ntable(data.table(m),add_rownames=FALSE,add_header=FALSE,alternating=FALSE)
+  paste0(
+    #"\\begin{minipage}[t][3cm][t]{3cm}",
+    ntable(
+      data.table(m),
+      add_rownames=FALSE,
+      add_header=FALSE,
+      alternating=FALSE,
+      align=c("@{\\hskip 1pt}l","@{\\hskip 1pt}l","l","@{\\hskip 1pt}l")
+    )
+    #,"\\end{minipage}"
+  )
 },mapply(
   make_matrix_from_args,
   gross_txt=rep("{\\small gross}",nrow(duke_pair_exposure)),
@@ -297,13 +311,13 @@ detailed_report<-data.table(
   details=pair_stat_matrix
 )
 detailed_report_title<-"{\\bf Pair detail}"
-a1<-c("m{3cm}","l")
+a1<-c("m{2cm}","c")
 @
 
 \Sexpr{make_df_layout(
   df=detailed_report,
   title=detailed_report_title,
-  side_by_side_count=2,
+  side_by_side_count=3,
   lines_per_page_count=10,
   fmt=list(align=a1,add_rownames=FALSE)
 )}
