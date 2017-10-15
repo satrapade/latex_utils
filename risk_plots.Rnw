@@ -127,9 +127,76 @@ make_pair_layout<-function(
 
 @
 
-\newpage
+
 \Sexpr{paste(manager_col$latex_col_def,collapse="")}
 
+<<, cache=FALSE, eval=TRUE, echo=FALSE, message=FALSE, warning=FALSE, results="hide">>=
+selection_path<-function(n,normalize=TRUE){
+  res<-t(apply(diag(n)[sample(1:n,n),],2,cumsum))
+  if(!normalize)return(res)
+  f<-matrix(apply(res,2,sum),nrow=1)[rep(1,nrow(res)),]
+  res/f
+}
+
+x<-duke_pair_local_pnl
+p1<-mapply(log,mapply(function(i)apply(x%*%(selection_path(ncol(x))[,1:ncol(x)]),2,sd),1:100,SIMPLIFY=FALSE),SIMPLIFY = FALSE)
+
+x<-mapply(rnorm,mean=apply(duke_pair_local_pnl,2,mean),sd=apply(duke_pair_local_pnl,2,constant(0.01)),MoreArgs=list(n=nrow(duke_pair_local_pnl)))
+p2<-mapply(log,mapply(function(i)apply(x%*%(selection_path(ncol(x))[,1:ncol(x)]),2,sd),1:100,SIMPLIFY=FALSE),SIMPLIFY = FALSE)
+
+p<-c(p1,p2)
+col<-rep(c(rgb(1,0,0,0.1),rgb(0,0,0,0.1)),c(length(p1),length(p2)))
+
+plot_diversification_paths<-expression({
+  plot(
+    0,
+    xlim=c(1,length(p[[1]])),
+    ylim=c(min(mapply(c,p)),max(mapply(c,p))),
+    type="n",
+    main="Diversification benefit",
+    ylab="Log of portfolio volatility",
+    xlab="Number of selected pairs"
+  )
+  invisible(mapply(lines,x=p,col=col,MoreArgs=list(lwd=2)))
+  NULL
+})
+
+@
+
+\Sexpr{make_plot(plot_diversification_paths,width="20cm",height="20cm",envir=environment())}
+
+\newpage
+<<, cache=FALSE, eval=TRUE, echo=FALSE, message=FALSE, warning=FALSE, results="hide">>=
+pair_stats<-data.table(
+  pair=colnames(duke_pair_local_pnl),
+  gross=apply(abs(duke_pair_exposure),2,sum),
+  marginal_risk=round(10000*(sd(duke_local_pnl)-apply(duke_drop_one_pair_pnl,2,sd)),digits=0),
+  unit_marginal=round(10000*(sd(duke_local_pnl)-apply(duke_drop_one_pair_pnl,2,sd))/apply(abs(duke_pair_exposure),2,sum),digits=0),
+  liquidity=round(apply(abs(duke_pair_days),2,max),digits=0),
+  corr=mapply(function(x,y){
+      if(sd(x)<1e-10)return(0)
+      if(sd(y)<1e-10)return(0)
+      round(100*cor(x,y),digits=0)
+  },data.table(duke_pair_long_pnl),data.table(duke_pair_short_pnl)),
+  vol=mapply(function(x,y){
+    pair_sd<-sd(x+y)
+    long_sd<-sd(x)
+    short_sd<-sd(y)
+    round(pair_sd/(long_sd+short_sd),digits=1)
+  },data.table(duke_pair_long_pnl),data.table(duke_pair_short_pnl))
+)
+@
+
+\Sexpr{make_df_layout(
+  df=pair_stats,
+  title="Detailed pair statistics",
+  side_by_side_count=1,
+  lines_per_page_count=60,
+  fmt=list(align="l",add_rownames=TRUE)
+)}
+\rowcolors{2}{white}{white}
+
+\newpage
 <<, cache=FALSE, eval=TRUE, echo=FALSE, message=FALSE, warning=FALSE, results="hide">>=
 
 liquidity_vs_marginal_risk<-make_pair_layout(
@@ -241,46 +308,29 @@ diversification_vs_unit_marginal_risk<-make_pair_layout(
 @
 \Sexpr{diversification_vs_unit_marginal_risk}
 
-\newpage
-<<, cache=FALSE, eval=TRUE, echo=FALSE, message=FALSE, warning=FALSE, results="hide">>=
-selection_path<-function(n,normalize=TRUE){
-  res<-t(apply(diag(n)[sample(1:n,n),],2,cumsum))
-  if(!normalize)return(res)
-  f<-matrix(apply(res,2,sum),nrow=1)[rep(1,nrow(res)),]
-  res/f
-}
-
-x<-duke_pair_local_pnl
-p1<-mapply(log,mapply(function(i)apply(x%*%(selection_path(ncol(x))[,1:ncol(x)]),2,sd),1:100,SIMPLIFY=FALSE),SIMPLIFY = FALSE)
-
-x<-mapply(rnorm,mean=apply(duke_pair_local_pnl,2,mean),sd=apply(duke_pair_local_pnl,2,constant(0.01)),MoreArgs=list(n=nrow(duke_pair_local_pnl)))
-p2<-mapply(log,mapply(function(i)apply(x%*%(selection_path(ncol(x))[,1:ncol(x)]),2,sd),1:100,SIMPLIFY=FALSE),SIMPLIFY = FALSE)
-
-p<-c(p1,p2)
-col<-rep(c(rgb(1,0,0,0.1),rgb(0,0,0,0.1)),c(length(p1),length(p2)))
-
-plot_diversification_paths<-expression({
-  plot(
-    0,
-    xlim=c(1,length(p[[1]])),
-    ylim=c(min(mapply(c,p)),max(mapply(c,p))),
-    type="n",
-    main="Diversification benefit",
-    ylab="Log of portfolio volatility",
-    xlab="Number of selected pairs"
-  )
-  invisible(mapply(lines,x=p,col=col,MoreArgs=list(lwd=2)))
-  NULL
-})
-
-@
-
-\Sexpr{make_plot(plot_diversification_paths,width="20cm",height="20cm",envir=environment())}
 
 \newpage
 <<, cache=FALSE, eval=TRUE, echo=FALSE, message=FALSE, warning=FALSE, results="hide">>=
 
-pair_stat_matrix<-mapply(function(m){
+pair_stat_matrix<-mapply(
+  make_matrix_from_args,
+  gross_txt=rep("{\\small gross}",ncol(duke_pair_exposure)),
+  gross=pair_stats$gross,
+  marginal_risk_txt=rep("{\\small mrisk}",ncol(duke_pair_exposure)),
+  marginal_risk=pair_stats$marginal_risk,
+  unit_marginal_risk_txt=rep("{\\small umrisk}",ncol(duke_pair_exposure)),
+  unit_marginal=pair_stats$unit_marginal,
+  liquidity_txt=rep("{\\small adv}",ncol(duke_pair_exposure)),
+  liquidity=pair_stats$liquidity,
+  cor_txt=rep("{\\small cor}",ncol(duke_pair_exposure)),
+  corr=pair_stats$corr,
+  vol_txt=rep("{\\small vol}",ncol(duke_pair_exposure)),
+  vol=pair_stats$vol,
+  MoreArgs = list(template_matrix=rbind(c(1,2,3,4),c(5,6,7,8),c(9,10,11,12))),
+  SIMPLIFY=FALSE
+)
+
+latex_pair_stat_matrix<-mapply(function(m){
   paste0(
     #"\\begin{minipage}[t][3cm][t]{3cm}",
     ntable(
@@ -292,27 +342,16 @@ pair_stat_matrix<-mapply(function(m){
     )
     #,"\\end{minipage}"
   )
-},mapply(
-  make_matrix_from_args,
-  gross_txt=rep("{\\small gross}",nrow(duke_pair_exposure)),
-  gross=apply(abs(duke_pair_exposure),2,sum),
-  marginal_risk_txt=rep("{\\small mrisk}",nrow(duke_pair_exposure)),
-  marginal_risk=round(sd(duke_local_pnl)-apply(duke_drop_one_pair_pnl,2,sd),digits=0),
-  unit_marginal_risk_txt=rep("{\\small umrisk}",nrow(duke_pair_exposure)),
-  unit_marginal=round((sd(duke_local_pnl)-apply(duke_drop_one_pair_pnl,2,sd))/apply(abs(duke_pair_exposure),2,sum),digits=0),
-  liquidity_txt=rep("{\\small adv}",nrow(duke_pair_exposure)),
-  liquidity=round(apply(abs(duke_pair_days),2,max),digits=0),
-  MoreArgs = list(template_matrix=rbind(c(1,2,3,4),c(5,6,7,8))),
-  SIMPLIFY=FALSE
-))
+},pair_stat_matrix)
 
 detailed_report<-data.table(
   pair=icon(icon_name=colnames(duke_pair_exposure),width="20mm",height="20mm"),
-  details=pair_stat_matrix
+  details=latex_pair_stat_matrix
 )
 detailed_report_title<-"{\\bf Pair detail}"
 a1<-c("m{2cm}","c")
 @
+
 
 \Sexpr{make_df_layout(
   df=detailed_report,

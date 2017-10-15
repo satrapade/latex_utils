@@ -44,12 +44,17 @@ fwrite(manager_col,"manager_col.csv")
 pair_col<-assign_color(pairs,col_alpha=1)
 fwrite(pair_col,"pair_col.csv")
 
-tret<-matrix(
-  rnorm(length(stocks)*1000,sd=0.01,mean=0),
+history_days<-1000
+tret<-(matrix(
+  rnorm(length(stocks)*history_days,sd=0.01,mean=0),
   ncol=length(stocks),
-  dimnames=list(1:1000,stocks)
-)*matrix(rep(rep(c(0,1),times=c(2,5)),length.out=1000),ncol=1)[,rep(1,length(stocks))]
-
+  dimnames=list(1:history_days,stocks)
+)+
+cbind(rnorm(history_days,sd=0.01),rep(0,history_days))[,sample(c(1,rep(2,1)),length(stocks),replace=TRUE)]+ # 50% with a low vol common factor
+cbind(rnorm(history_days,sd=0.02),rep(0,history_days))[,sample(c(1,rep(2,10)),length(stocks),replace=TRUE)]+ # 5% with a medium vol common factor
+cbind(rnorm(history_days,sd=0.04),rep(0,history_days))[,sample(c(1,rep(2,100)),length(stocks),replace=TRUE)] # 0.5% with a high vol common factor
+)*matrix(rep(rep(c(0,1),times=c(2,5)),length.out=1000),ncol=1)[,rep(1,length(stocks))] # weekends 
+ 
 adv<-matrix(
   sample(1:100,length(stocks),replace=TRUE),
   nrow=length(stocks),
@@ -58,7 +63,7 @@ adv<-matrix(
 )
 
 duke_pair_exposure<-mapply(function(i){
-  selected_stocks<-(seq_along(stocks) %in% sample(seq_along(stocks),sample(1:3,1)))
+  selected_stocks<-(seq_along(stocks) %in% sample(seq_along(stocks),sample(1:5,1)))
   stock_direction<-sample(c(-1,1),length(stocks),replace=TRUE)
   structure(selected_stocks*stock_direction,.Names=stocks)
 },pairs)
