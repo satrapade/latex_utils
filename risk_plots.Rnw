@@ -73,13 +73,53 @@ icon<-function(icon_name,height="3cm",width="3cm",icon_table=images){
 }
 managers<-sort(unique(pair2pm(images$name)))
 
-pair_layout<-data.table(
-  x=round(runif(nrow(images),0,200),digits=0),
-  y=round(runif(nrow(images),0,200),digits=0),
-  text=images$name
-)
 
-pair_matrix<-df2matrix(pair_layout)
+make_pair_layout<-function(
+  layout_matrix,
+  xtext="Increasing ADV multiple",
+  ytext="Increasing marginal contribution to DUKE risk",
+  title="DUKE: marginal risk contribution vs liquidity, all pairs"
+){
+  
+  res<-paste0(
+    "\\begin{center}",
+    "\\setlength{\\tabcolsep}{1pt}",
+    "\\begin{tabular}{m{0.5cm} m{20cm}}",
+    "\\hline",
+    "\\rowcolor{gray!20}",
+    "\\multicolumn{2}{c}{\\bf ",title,"} \\\\ \\\\",
+    "\\rotatebox[origin=c]{90}{",ytext,"\\tikz[baseline=-0.5ex]{\\draw[line width=1pt, ->] (0, 0)--(2cm,0);}} ",
+    " & ",
+    "\\resizebox{20cm}{20cm}{",
+    tikz_plot_matrix(
+      content=apply(
+        layout_matrix,
+        1:2,
+        function(e)ifelse(match(pair2pm(e),managers,nomatch=0)>0,icon(icon_name=e,width="18mm",height="18mm"),"")
+      ),
+      node=apply(
+        layout_matrix,
+        1:2,
+        function(e)ifelse(
+          match(pair2pm(e),managers[5],nomatch=0)>0 & runif(1)>0.5,
+          "draw,inner sep=1pt,outer sep=0pt,fill=red!20",
+          "draw,inner sep=1pt,outer sep=0pt"
+        )
+      )
+    ),
+    "}",
+    "\\\\",
+    "&", 
+    "\\multicolumn{1}{c}{\\Tstrut ",xtext," \\tikz[baseline=-0.5ex]{\\draw[line width=1pt, ->] (0, 0)--(2cm,0);}} \\\\",
+    "\\end{tabular}",
+    "\\end{center}",
+    "\\vskip 1cm",
+    "\\begin{center}",
+    icon(icon_name="ICONKEY",width="10cm",height="2cm",icon_table=keys),
+    "\\end{center}"
+  )
+  res
+}
 
 @
 
@@ -88,99 +128,185 @@ pair_matrix<-df2matrix(pair_layout)
 
 <<, cache=FALSE, eval=TRUE, echo=FALSE, message=FALSE, warning=FALSE, results="hide">>=
 
-liquidity_vs_marginal_risk<-df2matrix(data.table(
-     x=apply(abs(duke_pair_days),2,max),
+liquidity_vs_marginal_risk<-make_pair_layout(
+    layout_matrix=df2matrix(data.table(
+        x=apply(abs(duke_pair_days),2,max),
+        y=sd(duke_local_pnl)-apply(duke_drop_one_pair_pnl,2,sd),
+        text=images$name
+    )),
+    xtext="Increasing ADV multiple",
+    ytext="Increasing marginal contribution to DUKE risk",
+    title="DUKE: marginal risk contribution vs liquidity, all pairs"
+)
+
+@
+\Sexpr{liquidity_vs_marginal_risk}
+
+\newpage
+<<, cache=FALSE, eval=TRUE, echo=FALSE, message=FALSE, warning=FALSE, results="hide">>=
+gross_vs_marginal_risk<-make_pair_layout(
+    layout_matrix=df2matrix(data.table(
+     x=apply(abs(duke_pair_exposure),2,sum),
      y=sd(duke_local_pnl)-apply(duke_drop_one_pair_pnl,2,sd),
      text=images$name
-))
+    )),
+    xtext="Increasing gross exposure",
+    ytext="Increasing marginal contribution to DUKE risk",
+    title="DUKE: marginal risk contribution vs gross, all pairs"
+)
+
+@
+\Sexpr{gross_vs_marginal_risk}
+
+\newpage
+<<, cache=FALSE, eval=TRUE, echo=FALSE, message=FALSE, warning=FALSE, results="hide">>=
+gross_vs_unit_marginal_risk<-make_pair_layout(
+    layout_matrix=df2matrix(data.table(
+     x=apply(abs(duke_pair_exposure),2,sum),
+     y=(sd(duke_local_pnl)-apply(duke_drop_one_pair_pnl,2,sd))/apply(abs(duke_pair_exposure),2,sum),
+     text=images$name
+    )),
+    xtext="Increasing gross exposure",
+    ytext="Increasing unit marginal contribution to DUKE risk",
+    title="DUKE: unit marginal risk contribution vs gross, all pairs"
+)
+
+@
+\Sexpr{gross_vs_unit_marginal_risk}
+
+\newpage
+<<, cache=FALSE, eval=TRUE, echo=FALSE, message=FALSE, warning=FALSE, results="hide">>=
+x0<-mapply(function(x,y){
+  if(sd(x)<1e-10)return(0)
+  if(sd(y)<1e-10)return(0)
+  cor(x,y)
+},data.table(duke_pair_long_pnl),data.table(duke_pair_short_pnl))
+long_short_correlation_vs_unit_marginal_risk<-make_pair_layout(
+    layout_matrix=df2matrix(data.table(
+     x=x0,
+     y=(sd(duke_local_pnl)-apply(duke_drop_one_pair_pnl,2,sd))/apply(abs(duke_pair_exposure),2,sum),
+     text=images$name
+    )),
+    xtext="Increasing correlation of longs with shorts",
+    ytext="Increasing unit marginal contribution to DUKE risk",
+    title="DUKE: unit marginal risk contribution vs long/short correlation, all pairs"
+)
+@
+\Sexpr{long_short_correlation_vs_unit_marginal_risk}
+
+\newpage
+<<, cache=FALSE, eval=TRUE, echo=FALSE, message=FALSE, warning=FALSE, results="hide">>=
+x0<-(-1)*mapply(function(x,y){
+  pair_sd<-sd(x+y)
+  long_sd<-sd(x)
+  short_sd<-sd(y)
+  pair_sd/(long_sd+short_sd)
+},data.table(duke_pair_long_pnl),data.table(duke_pair_short_pnl))
+diversification_vs_unit_marginal_risk<-make_pair_layout(
+    layout_matrix=df2matrix(data.table(
+      x=x0,
+      y=(sd(duke_local_pnl)-apply(duke_drop_one_pair_pnl,2,sd))/apply(abs(duke_pair_exposure),2,sum),
+      text=images$name
+    )),
+    xtext="Increasing diversification benefit",
+    ytext="Increasing unit marginal contribution to DUKE risk",
+    title="DUKE: unit marginal risk contribution vs diversification benefit, all pairs"
+)
+@
+\Sexpr{diversification_vs_unit_marginal_risk}
+
+\newpage
+<<, cache=FALSE, eval=TRUE, echo=FALSE, message=FALSE, warning=FALSE, results="hide">>=
+maxdd<-function(x)max(cummax(cumsum(x))-cumsum(x))
+x0<-(-1)*mapply(function(x,y){
+  pair_dd<-maxdd(x+y)
+  long_dd<-maxdd(x)
+  short_dd<-maxdd(y)
+  pair_dd/(long_dd+short_dd)
+},data.table(duke_pair_long_pnl),data.table(duke_pair_short_pnl))
+diversification_vs_unit_marginal_risk<-make_pair_layout(
+    layout_matrix=df2matrix(data.table(
+      x=x0,
+      y=(sd(duke_local_pnl)-apply(duke_drop_one_pair_pnl,2,sd))/apply(abs(duke_pair_exposure),2,sum),
+      text=images$name
+    )),
+    xtext="Increasing drawdown reduction",
+    ytext="Increasing unit marginal contribution to DUKE risk",
+    title="DUKE: unit marginal risk contribution vs drawdown reduction, all pairs"
+)
+@
+\Sexpr{diversification_vs_unit_marginal_risk}
+
+\newpage
+<<, cache=FALSE, eval=TRUE, echo=FALSE, message=FALSE, warning=FALSE, results="hide">>=
+selection_path<-function(n,normalize=TRUE){
+  res<-t(apply(diag(n)[sample(1:n,n),],2,cumsum))
+  if(!normalize)return(res)
+  f<-matrix(apply(res,2,sum),nrow=1)[rep(1,nrow(res)),]
+  res/f
+}
+
+x<-duke_pair_local_pnl
+p1<-mapply(log,mapply(function(i)apply(x%*%(selection_path(ncol(x))[,1:ncol(x)]),2,sd),1:100,SIMPLIFY=FALSE),SIMPLIFY = FALSE)
+
+x<-mapply(rnorm,mean=apply(duke_pair_local_pnl,2,mean),sd=apply(duke_pair_local_pnl,2,constant(0.01)),MoreArgs=list(n=nrow(duke_pair_local_pnl)))
+p2<-mapply(log,mapply(function(i)apply(x%*%(selection_path(ncol(x))[,1:ncol(x)]),2,sd),1:100,SIMPLIFY=FALSE),SIMPLIFY = FALSE)
+
+p<-c(p1,p2)
+col<-rep(c(rgb(1,0,0,0.1),rgb(0,0,0,0.1)),c(length(p1),length(p2)))
+
+plot_diversification_paths<-expression({
+  plot(
+    0,
+    xlim=c(1,length(p[[1]])),
+    ylim=c(min(mapply(c,p)),max(mapply(c,p))),
+    type="n",
+    main="Diversification benefit",
+    ylab="Log of portfolio volatility",
+    xlab="Number of selected pairs"
+  )
+  invisible(mapply(lines,x=p,col=col,MoreArgs=list(lwd=2)))
+  NULL
+})
 
 @
 
-\begin{center}
-\setlength{\tabcolsep}{1pt}
-\begin{tabular}{m{0.5cm} m{20cm}}
-\hline
-\rowcolor{gray!20}
-\multicolumn{2}{c}{\bf DUKE: marginal risk contribution vs liquidity, all pairs} \\ \\
-\rotatebox[origin=c]{90}{Increasing marginal contribution to DUKE risk\tikz[baseline=-0.5ex]{\draw[line width=1pt, ->] (0, 0)--(2cm,0);}} 
-& 
-\resizebox{20cm}{20cm}{\Sexpr{
-tikz_plot_matrix(
-  content=apply(
-    liquidity_vs_marginal_risk,
-    1:2,
-    function(e)ifelse(match(pair2pm(e),managers,nomatch=0)>0,icon(icon_name=e,width="18mm",height="18mm"),"")
-  ),
-  node=apply(
-    liquidity_vs_marginal_risk,
-    1:2,
-    function(e)ifelse(match(pair2pm(e),managers[5],nomatch=0)>0 & runif(1)>0.5,
-    "draw,inner sep=1pt,outer sep=0pt,fill=red!20",
-    "draw,inner sep=1pt,outer sep=0pt"
-    )
-  )
-)}} 
-\\
-& \multicolumn{1}{c}{\Tstrut Increasing ADV multiple \tikz[baseline=-0.5ex]{\draw[line width=1pt, ->] (0, 0)--(2cm,0);}} \\
-\end{tabular}
-\end{center}
-
-\vskip 1cm
-
-\begin{center}
-\Sexpr{icon(icon_name="ICONKEY",width="10cm",height="2cm",icon_table=keys)}
-\end{center}
+\Sexpr{make_plot(plot_diversification_paths,width="20cm",height="20cm",envir=environment())}
 
 \newpage
 <<, cache=FALSE, eval=TRUE, echo=FALSE, message=FALSE, warning=FALSE, results="hide">>=
 
-gross_vs_marginal_risk<-df2matrix(data.table(
-     x=apply(abs(duke_pair_exposure),2,sum),
-     y=sd(duke_local_pnl)-apply(duke_drop_one_pair_pnl,2,sd),
-     text=images$name
+pair_stat_matrix<-mapply(function(m){
+  ntable(data.table(m),add_rownames=FALSE,add_header=FALSE,alternating=FALSE)
+},mapply(
+  make_matrix_from_args,
+  gross_txt=rep("{\\small gross}",nrow(duke_pair_exposure)),
+  gross=apply(abs(duke_pair_exposure),2,sum),
+  marginal_risk_txt=rep("{\\small mrisk}",nrow(duke_pair_exposure)),
+  marginal_risk=round(sd(duke_local_pnl)-apply(duke_drop_one_pair_pnl,2,sd),digits=0),
+  unit_marginal_risk_txt=rep("{\\small umrisk}",nrow(duke_pair_exposure)),
+  unit_marginal=round((sd(duke_local_pnl)-apply(duke_drop_one_pair_pnl,2,sd))/apply(abs(duke_pair_exposure),2,sum),digits=0),
+  liquidity_txt=rep("{\\small adv}",nrow(duke_pair_exposure)),
+  liquidity=round(apply(abs(duke_pair_days),2,max),digits=0),
+  MoreArgs = list(template_matrix=rbind(c(1,2,3,4),c(5,6,7,8))),
+  SIMPLIFY=FALSE
 ))
 
+detailed_report<-data.table(
+  pair=icon(icon_name=colnames(duke_pair_exposure),width="20mm",height="20mm"),
+  details=pair_stat_matrix
+)
+detailed_report_title<-"{\\bf Pair detail}"
+a1<-c("m{3cm}","l")
 @
 
-\begin{center}
-\setlength{\tabcolsep}{1pt}
-\begin{tabular}{m{0.5cm} m{20cm}}
-\hline
-\rowcolor{gray!20}
-\multicolumn{2}{c}{\bf DUKE: marginal risk contribution vs gross exposure, all pairs} \\ \\
-\rotatebox[origin=c]{90}{Increasing marginal contribution to DUKE risk\tikz[baseline=-0.5ex]{\draw[line width=1pt, ->] (0, 0)--(2cm,0);}} 
-& 
-\resizebox{20cm}{20cm}{\Sexpr{
-tikz_plot_matrix(
-  content=apply(
-    gross_vs_marginal_risk,
-    1:2,
-    function(e)ifelse(match(pair2pm(e),managers,nomatch=0)>0,icon(icon_name=e,width="18mm",height="18mm"),"")
-  ),
-  node=apply(
-    gross_vs_marginal_risk,
-    1:2,
-    function(e)ifelse(match(pair2pm(e),managers[5],nomatch=0)>0 & runif(1)>0.5,
-    "draw,inner sep=1pt,outer sep=0pt,fill=red!20",
-    "draw,inner sep=1pt,outer sep=0pt"
-    )
-  )
-)}} 
-\\
-& \multicolumn{1}{c}{\Tstrut Increasing gross exposure \tikz[baseline=-0.5ex]{\draw[line width=1pt, ->] (0, 0)--(2cm,0);}} \\
-\end{tabular}
-\end{center}
-
-\vskip 1cm
-
-\begin{center}
-\Sexpr{icon(icon_name="ICONKEY",width="10cm",height="2cm",icon_table=keys)}
-\end{center}
-
-
-<<, cache=FALSE, eval=TRUE, echo=FALSE, message=FALSE, warning=FALSE, results="hide">>=
-
-@
+\Sexpr{make_df_layout(
+  df=detailed_report,
+  title=detailed_report_title,
+  side_by_side_count=2,
+  lines_per_page_count=10,
+  fmt=list(align=a1,add_rownames=FALSE)
+)}
 
 \end{document}
 

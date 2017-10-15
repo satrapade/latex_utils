@@ -57,27 +57,27 @@ weights_for_target_vol<-function(pnl_matrix,target_vol=4){
   res
 }
 
-#
-df2matrix<-function(
-  df
-){
-  k<-sqrt(floor(sqrt(nrow(df))+1)^2)
-  m<-matrix("",nrow=k,ncol=k)
-  gx<-as.vector(col(m))
-  gy<-as.vector(row(m))
-  dfx<-rescale(df$x,range(gx))
-  dfy<-rescale(df$y,range(gy))
-  mx<-matrix(dfx,ncol=1)[,rep(1,length(gx))]
-  my<-matrix(dfy,ncol=1)[,rep(1,length(gx))]
-  gridx<-matrix(gx,nrow=1)[rep(1,length(dfx)),]
-  gridy<-matrix(gy,nrow=1)[rep(1,length(dfy)),]
-  dx<-(mx-gridx)^2
-  dy<-(my-gridy)^2
-  d<-dx+dy
-  t2g <- solve_LSAP(d)
-  m[cbind(nrow(m)-gy[t2g]+1,gx[t2g])]<-df$text
-  m
-}
+
+# df2matrix<-function(
+#   df
+# ){
+#   k<-sqrt(floor(sqrt(nrow(df))+1)^2)
+#   m<-matrix("",nrow=k,ncol=k)
+#   gx<-as.vector(col(m))
+#   gy<-as.vector(row(m))
+#   dfx<-rescale(df$x,range(gx))
+#   dfy<-rescale(df$y,range(gy))
+#   mx<-matrix(dfx,ncol=1)[,rep(1,length(gx))]
+#   my<-matrix(dfy,ncol=1)[,rep(1,length(gx))]
+#   gridx<-matrix(gx,nrow=1)[rep(1,length(dfx)),]
+#   gridy<-matrix(gy,nrow=1)[rep(1,length(dfy)),]
+#   dx<-(mx-gridx)^2
+#   dy<-(my-gridy)^2
+#   d<-dx+dy
+#   t2g <- solve_LSAP(d)
+#   m[cbind(nrow(m)-gy[t2g]+1,gx[t2g])]<-df$text
+#   m
+# }
 
 # fast exponential moving average
 calc_ama<-function(x,n){

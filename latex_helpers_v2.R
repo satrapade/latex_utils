@@ -161,7 +161,7 @@ add_comma<-function(x,digits=2){
 }
 
 #
-# latex table rend
+# latex table render
 #
 
 ntable<-function(
@@ -220,6 +220,113 @@ set_format<-function(x,format,fcols=1:ncol(x)){
   }
   x
 }
+
+#
+# ntable used formatting information stored as attributes in
+# a data.frame
+# applying functions to a data frame loses this info
+# the below functions preserve it
+#
+#do.call(structure,c(list(x$x),attributes(x$x)))
+obj_subset<-function(x,o){
+  y<-x[o]
+  attributes(y)<-attributes(x)
+  y
+}
+
+#
+# data frame layout functions
+#
+
+table_page<-function(x,n=1,p=10){
+  i<-(1:nrow(x))%/%p==n
+  if(sum(i)==0)return(x[0,])
+  x[i,]
+}
+
+# split data frame to multiple pages
+multi_ntable<-function(
+  df,
+  n,
+  title="",
+  fmt=list(add_rownames=FALSE)
+){
+  o<-multi_page(1:nrow(df),n)
+  sf<-data.frame_split(df,o)
+  pfs<-mapply(
+    function(pf,i){
+      args<-fmt
+      args$df<-pf
+      args$title<-paste0(title," ",i,"/",max(o))
+      do.call(ntable,args)
+    },
+    sf,
+    seq_along(sf),
+    SIMPLIFY=FALSE
+  )
+  pa<-c(pfs,list(sep=" \n\n "))
+  do.call(paste,pa)
+}
+
+#
+# layout dataframe 
+# on multiple pages
+#
+
+# x,y,content data frame
+# to be laid out on a matrix
+# default is swuare matrix
+df2matrix<-function(
+  df,
+  col_count=ceiling(sqrt(nrow(df)))+col_slack,
+  row_count=ceiling(nrow(df)/col_count)+row_slack,
+  col_slack=1,
+  row_slack=1
+){
+  m<-matrix("",nrow=row_count,ncol=col_count)
+  gx<-as.vector(col(m))
+  gy<-as.vector(row(m))
+  dfx<-rescale(df$x,range(gx))
+  dfy<-rescale(df$y,range(gy))
+  mx<-matrix(dfx,ncol=1)[,rep(1,length(gx))]
+  my<-matrix(dfy,ncol=1)[,rep(1,length(gx))]
+  gridx<-matrix(gx,nrow=1)[rep(1,length(dfx)),]
+  gridy<-matrix(gy,nrow=1)[rep(1,length(dfy)),]
+  dx<-(mx-gridx)^2
+  dy<-(my-gridy)^2
+  d<-dx+dy
+  t2g <- solve_LSAP(d)
+  m[cbind(nrow(m)-gy[t2g]+1,gx[t2g])]<-df$text
+  m
+}
+
+make_df_layout<-function(
+  df,
+  side_by_side_count=3,
+  lines_per_page_count=20,
+  title=NULL,
+  fmt=list(add_rownames=FALSE)
+){
+  m<-matrix(0,ncol=side_by_side_count,nrow=ceiling(nrow(df)/side_by_side_count))
+  res<-df2matrix(data.table(
+    text=as.character(1:nrow(df)),
+    x=rep(1:ncol(m),times=nrow(m))[1:nrow(df)],
+    y=rep(1:nrow(m),each=ncol(m))[nrow(df):1]
+  ),col_count=side_by_side_count,col_slack=0,row_slack=0)
+  pages<-split(1:nrow(res),(1:nrow(res))%/%lines_per_page_count)
+  page_layouts<-mapply(function(i){
+    df_rows<-mapply(function(j)as.integer(res[i,j][grepl("^[0-9]+$",res[i,j])]),1:ncol(res),SIMPLIFY=FALSE)
+    df_subsets<-mapply(function(r)df[r,],df_rows,SIMPLIFY = FALSE)
+    df_side_by_side<-mapply(ntable,df=df_subsets,MoreArgs=fmt,SIMPLIFY=FALSE)
+    df1<-do.call(data.table,df_side_by_side)
+    page<-ntable(df1,add_rownames=FALSE,add_header=FALSE,title=title)
+    paste0("\n",page,"\n\n\\newpage\n\n")
+  },pages,SIMPLIFY=FALSE)
+  do.call(paste,page_layouts)
+}
+#
+# drawing primitives
+#
 
 dot<-function(col,size="0.5ex",raise="0.2ex"){
   paste0(
@@ -384,41 +491,6 @@ tikz_plot_matrix<-function(
   tikz_plot_nodes(df,units=units,node=df$node)
 }
 
-# tikz_plot_nodes<-function(df,units="mm",node="draw,inner sep=1pt,outer sep=0pt"){
-#   coordinates<-paste0("(",
-#                       stri_trim(format(df$x,scientific=FALSE)),units,
-#                       ",",
-#                       stri_trim(format(df$y,scientific=FALSE)),units,
-#                       ")")
-#   nodes<-paste0(coordinates," ","node[",node,"]","{",df$text,"}",sep="")
-#   path<-paste("\\path",paste0(nodes,collapse=" "),";")
-#   paste0("\\tikz{",path,"}\n")
-# }
-
-# constant<-function(x)function(y)x
-# tikz_plot_matrix<-function(
-#   content,
-#   xscale=c(0,200),
-#   yscale=c(0,200),
-#   units="mm",
-#   node=apply(content,1:2,constant("draw,inner sep=1pt,outer sep=0pt"))
-# ){
-#   df<-data.table(
-#     x=rescale(as.vector(col(content)),xscale),
-#     y=rescale(as.vector(row(content)),yscale),
-#     text=as.vector(content),
-#     node=as.vector(node)
-#   )[text!=""]
-#   tikz_plot_nodes(df,units=units,node=df$node)
-# }
-
-
-
-table_page<-function(x,n=1,p=10){
-  i<-(1:nrow(x))%/%p==n
-  if(sum(i)==0)return(x[0,])
-  x[i,]
-}
 
 
 color_ramp<-function(x,from="white",to="red"){
@@ -481,7 +553,9 @@ show_decile<-function(x,col="blue!25"){
   )
 }
 
+#
 make_spark<-function(x,width=20){
+  stop("deprecated! dont use this!")
   if(length(x)<2)return("")
   sx<-round(rescale(seq_along(x)),digits=2)
   sy<-round(rescale(x),digits=2)
@@ -502,7 +576,9 @@ make_spark<-function(x,width=20){
   res
 }
 
+#
 smooth_spark<-function(x,width=10){
+  stop("deprecated! dont use this!")
   xs<-ksmooth(seq_along(x),x, "normal", bandwidth = 5)$y
   make_spark(xs[seq(1,length(xs),length.out = 20)],width=width)
 }
@@ -538,18 +614,7 @@ n_fmt<-function(this)paste0(ifelse(this>=0,"\\phantom{-}",""),this)
 sanitize<-function(this)latexTranslate(this)
 
 
-#
-# ntable used formatting information stored as attributes in
-# a data.frame
-# applying functions to a data frame loses this info
-# the below functions preserve it
-#
-#do.call(structure,c(list(x$x),attributes(x$x)))
-obj_subset<-function(x,o){
-  y<-x[o]
-  attributes(y)<-attributes(x)
-  y
-}
+
 
 data.frame_rbind<-function(x,y){
   z<-rbind(x,y)
@@ -607,28 +672,6 @@ multi_page<-function(x,n){
   res
 }
 
-multi_ntable<-function(
-  df,
-  n,
-  title="",
-  fmt=list(add_rownames=FALSE)
-){
-  o<-multi_page(1:nrow(df),n)
-  sf<-data.frame_split(df,o)
-  pfs<-mapply(
-    function(pf,i){
-      args<-fmt
-      args$df<-pf
-      args$title<-paste0(title," ",i,"/",max(o))
-      do.call(ntable,args)
-    },
-    sf,
-    seq_along(sf),
-    SIMPLIFY=FALSE
-  )
-  pa<-c(pfs,list(sep=" \n\n "))
-  do.call(paste,pa)
-}
 
 # arrange inputs in matrix format. used to layout data frames
 make_matrix_from_args<-function(template_matrix,...){
