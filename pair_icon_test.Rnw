@@ -136,12 +136,21 @@ pair_sparkline<-function(
   paste0("\\fbox{",res,"}")
 }
 
-pair_price_action<-function(pair,pair_local_pnl=duke_pair_local_pnl,w=21){
+# recent pair price actions
+pair_price_action<-function(
+  pair,
+  pair_local_pnl=duke_pair_local_pnl,
+  w=21,
+  height=2,
+  width=30,
+  units="mm"
+){
   pnl<-tail(pair_local_pnl[,pair],21)
-  txt<-make_tikz_price_action(pnl,width=30,height=30,units="mm")
+  txt<-make_tikz_price_action(pnl,width=width,height=height,units=units)
   txt
 }
 
+# table with pair technical, positioning info
 pair_technicals<-function(
   pair,
   w=365,
@@ -164,6 +173,16 @@ pair_technicals<-function(
   gross<-sum(abs(pair_exposure[,pair]))
 }
 
+pair_icon<-function(pair){
+  paste0(
+    paste0("\\multicolumn{1}{@{}c@{}}{",pair_pm,"}"),
+    paste0("\\multicolumn{1}{@{}c@{}}{",pair_latest_action,"}"),
+    paste0("\\multicolumn{1}{@{}c@{}}{",pair_stats,"}"),
+    pair_longs,
+    pair_shorts
+  )
+}
+
 #
 #
 #
@@ -171,9 +190,10 @@ pair_technicals<-function(
 days<-apply(abs(duke_pair_days),2,max)
 msd<-100*10000*(sd(duke_local_pnl)-apply(duke_drop_one_pair_pnl,2,sd))
 
-days_text<-paste0("{v",ifelse(days<1,"\\bf ",""),round(days,digits=1),"}")
-msd_text<-paste0("r",ifelse(msd<0,"\\textcolor{black}{\\underline{(","\\textcolor{black}{"),abs(round(msd,digits=1)),ifelse(msd<0,")}}","}"))
+days_text<-paste0("v",round(days,digits=1))
+msd_text<-paste0("r",abs(round(msd,digits=1)))
 gross_text<-paste0("g",round(10000*apply(abs(duke_pair_exposure),2,sum),digits=0))
+
 grid_text<-paste0("\\begin{tabular}{@{}c@{\\hskip 2ex}c@{\\hskip 2ex}c@{}}",days_text," & ",msd_text," & ",gross_text,"\\end{tabular}")
   
 pair_longs<-mapply(function(i)pair_leg(pair=i,direction=1),pairs)
@@ -200,15 +220,6 @@ pair_stats<-structure(df_row2tabular(tm=rbind(c(1,2,3),c(4,5,6),c(7,8,9)),df=dat
 
 
 
-icon<-function(pair){
-  paste0(
-    paste0("\\multicolumn{1}{@{}c@{}}{",pair_pm,"}"),
-    paste0("\\multicolumn{1}{@{}c@{}}{",pair_latest_action,"}"),
-    paste0("\\multicolumn{1}{@{}c@{}}{",pair_stats,"}"),
-    pair_longs,
-    pair_shorts
-  )
-}
 
 #
 #
@@ -240,7 +251,19 @@ all_icons<-paste(mapply(make_external_latex,latex=pair_icon_latex$latex,file=pai
 
 \Sexpr{paste(manager_col$latex_col_def,collapse="")}
 
-\Sexpr{all_icons}
+\begin{tabular}{| c | c |}
+\hline
+\Sexpr{pair_icon_latex$latex[1]}
+&
+\Sexpr{pair_icon_latex$latex[2]}
+\\
+\Sexpr{make_external_latex(pair_icon_latex$latex[1])}
+&
+\Sexpr{make_external_latex(pair_icon_latex$latex[2])}
+\\
+\hline
+\end{tabular}
+
 
 \end{document}
 

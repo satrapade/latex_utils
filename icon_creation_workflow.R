@@ -51,14 +51,28 @@ images<-data.table(
     recursive = FALSE,
     full.names = FALSE
   ))
-)
+)[!grepl("^ICON",name)]
 
-# [,
-#   "image":=do.call(c,mapply(function(f)base64encode(readBin(f,"raw",file.info(f)[["size"]])),file,SIMPLIFY=FALSE))
-# ]
+keys<-data.table(
+  file=list.files(
+    path="tikz-figures",
+    pattern="^[A-Za-z0-9]+\\.pdf$",
+    recursive = FALSE,
+    full.names = TRUE
+  ),
+  name=gsub("\\.pdf$","",list.files(
+    path="tikz-figures",
+    pattern="^[A-Za-z0-9]+\\.pdf$",
+    recursive = FALSE,
+    full.names = FALSE
+  ))
+)[grepl("^ICON",name)]
+
 
 fwrite(images,"images.csv")
+fwrite(keys,"keys.csv")
 
 x<-mapply(function(f)image_read(pdf_render_page(f,page=1,dpi=300)),images$file,SIMPLIFY = FALSE)
+y<-mapply(function(f)image_read(pdf_render_page(f,page=1,dpi=300)),keys$file,SIMPLIFY = FALSE)
 
 

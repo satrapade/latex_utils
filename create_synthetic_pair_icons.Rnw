@@ -48,7 +48,7 @@ tret<-matrix(
   rnorm(length(stocks)*1000,sd=0.01,mean=0),
   ncol=length(stocks),
   dimnames=list(1:1000,stocks)
-)
+)*matrix(rep(rep(c(0,1),times=c(2,5)),length.out=1000),ncol=1)[,rep(1,length(stocks))]
 
 adv<-matrix(
   sample(1:100,length(stocks),replace=TRUE),
@@ -96,6 +96,14 @@ fwrite(data.table(duke_pair_short_pnl),"duke_pair_short_pnl.csv")
 fwrite(data.table(duke_manager_local_pnl),"duke_manager_local_pnl.csv")
 fwrite(data.table(duke_drop_one_manager_pnl),"duke_drop_one_manager_pnl.csv")
 fwrite(data.table(duke_drop_one_pair_pnl),"duke_drop_one_pair_pnl.csv")
+
+pm_color_code_key<-paste0(
+  "\\colorbox{",sort(unique(pair2pm(colnames(duke_pair_days)))),"!20}{",
+  sort(unique(pair2pm(colnames(duke_pair_days)))),
+  "}",
+  collapse=","
+)
+
 
 days<-apply(abs(duke_pair_days),2,max)
 msd<-100*10000*(sd(duke_local_pnl)-apply(duke_drop_one_pair_pnl,2,sd))
@@ -161,7 +169,7 @@ pair_1m_sparks<-mapply(function(long_pnl,short_pnl){
 
 pair_latest_action<-mapply(function(long_pnl,short_pnl){
       pnl<-tail(long_pnl+short_pnl,21)
-      txt<-make_tikz_price_action(pnl,width=30,height=30,units="mm")
+      txt<-make_tikz_price_action(pnl,width=30,height=2,units="mm")
       paste0(txt,collapse="")
       
     },data.table(duke_pair_long_pnl),data.table(duke_pair_short_pnl))
@@ -212,6 +220,27 @@ all_icons<-paste(mapply(make_external_latex,latex=pair_icon_latex$latex,file=pai
 \Sexpr{paste(manager_col$latex_col_def,collapse="")}
 
 \Sexpr{all_icons}
+
+\tikzsetnextfilename{ICONKEY}
+\tikz{\path (0,0) node[inner sep=0,outer sep=0]{
+  \begin{tabular}{m{4cm} m{15cm}}
+  \hline
+  \multicolumn{2}{c}{\bf Table key} \\
+  \hline
+  \Sexpr{pair_icon_latex$latex[1]} 
+  &
+  \begin{tabular}{l}
+  Pair id, color-coded by PM : \Sexpr{pm_color_code_key} \\
+  3 weeks price action: (\Sexpr{triangle_up("green")}) up, (\Sexpr{triangle_dn("red")}) dn, (\Sexpr{cross("black",size="1ex",raise="0ex")}) flat  \\
+  Size in ADV multiples / Marginal risk contribution in 100th's of daily bp volatility / Gross in bps \\
+  {\bf 14 day RSI} RSI, last relative price location inside {\bf 6 month range} $100*\frac{LAST-LOW}{HIGH-LOW}$  \\
+  12m, 6m, 1m relative price plot, current exposures, same as Bloomberg CIX. \Sexpr{dot("red")} low, \Sexpr{dot("green")} high \\
+  Long tickers, first 10 letters.  Final \Sexpr{cross("black",size="1ex")} if list was clipped to 10 letters due to length. \\
+  Short tickers, first 10 letters.  Final \Sexpr{cross("black",size="1ex")} if list was clipped to 10 letters due to length. \\
+  \end{tabular} \\
+  \hline
+  \end{tabular}
+};}
 
 \end{document}
 

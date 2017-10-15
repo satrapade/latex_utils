@@ -66,9 +66,10 @@ pm_color_code_key<-paste0(
   collapse=","
 )
 
+keys<-fread("keys.csv")
 images<-fread("images.csv")
-icon<-function(pair,height="3cm",width="3cm"){
-  images[,.SD,keyby=name][pair,paste0("\\includegraphics[height=",height,",width=",width,",valign=T]{",file,"}")]
+icon<-function(icon_name,height="3cm",width="3cm",icon_table=images){
+  icon_table[,.SD,keyby=name][icon_name,paste0("\\includegraphics[height=",height,",width=",width,",valign=T]{",file,"}")]
 }
 pair2manager<-function(p)gsub("[0-9]+$","",p)
 managers<-sort(unique(pair2manager(images$name)))
@@ -124,7 +125,7 @@ tikz_plot_matrix(
   content=apply(
     liquidity_vs_marginal_risk,
     1:2,
-    function(e)ifelse(match(pair2manager(e),managers,nomatch=0)>0,icon(e,width="18mm",height="18mm"),"")
+    function(e)ifelse(match(pair2manager(e),managers,nomatch=0)>0,icon(icon_name=e,width="18mm",height="18mm"),"")
   ),
   node=apply(
     liquidity_vs_marginal_risk,
@@ -143,29 +144,8 @@ tikz_plot_matrix(
 \vskip 1cm
 
 \begin{center}
-\scalebox{0.5}{
-\begin{tabular}{m{4cm} m{16cm}}
-\hline
-\multicolumn{2}{c}{\bf Table key} \\
-\hline
-\Sexpr{icon(images$name[1],width="30mm",height="30mm")} 
-&
-\begin{tabular}{l}
-Pair id, color-coded by PM : \Sexpr{pm_color_code_key} \\
-3 weeks price action: (\Sexpr{triangle_up("green")}) up, (\Sexpr{triangle_dn("red")}) dn, (\Sexpr{cross("black",size="1ex",raise="0ex")}) flat  \\
-Size in ADV multiples / Marginal risk contribution in 100th's of daily bp volatility / Gross in bps \\
-{\bf 14 day RSI} RSI, last relative price location inside {\bf 6 month range} $100*\frac{LAST-LOW}{HIGH-LOW}$  \\
-12m, 6m, 1m relative price plot, current exposures, same as Bloomberg CIX. \Sexpr{dot("red")} low, \Sexpr{dot("green")} high \\
-Long tickers, first 10 letters.  Final \Sexpr{cross("black",size="1ex")} if list was clipped to 10 letters due to length. \\
-Short tickers, first 10 letters.  Final \Sexpr{cross("black",size="1ex")} if list was clipped to 10 letters due to length. \\
-\end{tabular} \\
-\hline
-\end{tabular}
-}
+\Sexpr{icon(icon_name="ICONKEY",width="10cm",height="2cm",icon_table=keys)}
 \end{center}
-
-
-
 
 \newpage
 <<, cache=FALSE, eval=TRUE, echo=FALSE, message=FALSE, warning=FALSE, results="hide">>=
@@ -191,7 +171,7 @@ tikz_plot_matrix(
   content=apply(
     gross_vs_marginal_risk,
     1:2,
-    function(e)ifelse(match(pair2manager(e),managers,nomatch=0)>0,icon(e,width="18mm",height="18mm"),"")
+    function(e)ifelse(match(pair2manager(e),managers,nomatch=0)>0,icon(icon_name=e,width="18mm",height="18mm"),"")
   ),
   node=apply(
     gross_vs_marginal_risk,
@@ -210,25 +190,7 @@ tikz_plot_matrix(
 \vskip 1cm
 
 \begin{center}
-\scalebox{0.5}{
-\begin{tabular}{m{4cm} m{16cm}}
-\hline
-\multicolumn{2}{c}{\bf Table key} \\
-\hline
-\Sexpr{icon(images$name[1],width="30mm",height="30mm")} 
-&
-\begin{tabular}{l}
-Pair id, color-coded by PM : \Sexpr{pm_color_code_key} \\
-3 weeks price action: (\Sexpr{triangle_up("green")}) up, (\Sexpr{triangle_dn("red")}) dn, (\Sexpr{cross("black",size="1ex",raise="0ex")}) flat  \\
-Size in ADV multiples / Marginal risk contribution in 100th's of daily bp volatility / Gross in bps \\
-{\bf 14 day RSI} RSI, last relative price location inside {\bf 6 month range} $100*\frac{LAST-LOW}{HIGH-LOW}$  \\
-12m, 6m, 1m relative price plot, current exposures, same as Bloomberg CIX. \Sexpr{dot("red")} low, \Sexpr{dot("green")} high \\
-Long tickers, first 10 letters.  Final \Sexpr{cross("black",size="1ex")} if list was clipped to 10 letters due to length. \\
-Short tickers, first 10 letters.  Final \Sexpr{cross("black",size="1ex")} if list was clipped to 10 letters due to length. \\
-\end{tabular} \\
-\hline
-\end{tabular}
-}
+\Sexpr{icon(icon_name="ICONKEY",width="10cm",height="2cm",icon_table=keys)}
 \end{center}
 
 

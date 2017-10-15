@@ -280,12 +280,18 @@ make_tikz_price_action<-function(
   line_width=0.1
 ){
   x<-rescale(seq_along(v),c(0,width))
-  y<-rescale(rep(1,length(x)),c(0,height))
+  y<-rep(0,length(x))
   node_dist<-max(diff(x))/6
   node<-mapply(function(s)switch(s,
-    down=paste0("node[regular polygon, regular polygon sides=3,rotate=180,fill=red,inner sep=",node_dist,units,"]"),
-    flat=paste0("node[cross out,draw=black,line width=",node_dist/2,units,",inner sep=",node_dist,units, "]",collapse=""),
-    up=paste0("node[regular polygon, regular polygon sides=3,fill=green,inner sep=",node_dist,units,"]")
+    down=paste0(
+      "node[shape=regular polygon, regular polygon sides=3,rotate=180,fill=red,inner sep=",node_dist,units,",minimum height=",height,units,"]"
+    ),
+    flat=paste0(
+      "node[shape=cross out,draw=black,line width=",node_dist/2,units,",inner sep=",node_dist,units,",minimum height=",1,units,"]"
+    ,collapse=""),
+    up=paste0(
+      "node[shape=regular polygon, regular polygon sides=3,fill=green,inner sep=",node_dist,units,",minimum height=",height,units,"]"
+    )
   ),c("down","flat","up")[sign(v)+2])
   path<-paste0(
     "(",
