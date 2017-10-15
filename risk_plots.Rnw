@@ -59,28 +59,31 @@ duke_drop_one_pair_pnl<-load_matrix(paste0("duke_drop_one_pair_pnl.csv"),row_nam
 manager_col<-fread("manager_col.csv")
 pair_col<-fread("pair_col.csv")
 
+pm_color_code_key<-paste0(
+  "\\colorbox{",sort(unique(pair2pm(colnames(duke_pair_days)))),"!20}{",
+  sort(unique(pair2pm(colnames(duke_pair_days)))),
+  "}",
+  collapse=","
+)
+
 images<-fread("images.csv")
 icon<-function(pair,height="3cm",width="3cm"){
   images[,.SD,keyby=name][pair,paste0("\\includegraphics[height=",height,",width=",width,",valign=T]{",file,"}")]
 }
+pair2manager<-function(p)gsub("[0-9]+$","",p)
+managers<-sort(unique(pair2manager(images$name)))
+
+pair_layout<-data.table(
+  x=round(runif(nrow(images),0,200),digits=0),
+  y=round(runif(nrow(images),0,200),digits=0),
+  text=images$name
+)
+
+pair_matrix<-df2matrix(pair_layout)
 
 @
 
-\section{icon positioning tests}
 
-\vskip 0.5cm
-
-\begin{center}
-\begin{tabular}{ |@{}m{10cm}@{}|@{}m{10cm}@{}|}
-\hline
-\Sexpr{icon(images$name[1],height="10cm",width="10cm")} & \Sexpr{icon(images$name[2],height="10cm",width="10cm")} \\
-\hline
-\Sexpr{icon(images$name[3],height="10cm",width="10cm")} & \Sexpr{icon(images$name[4],height="10cm",width="10cm")} \\
-\hline
-\end{tabular}
-\end{center}
-
-\newpage
 
 <<, cache=FALSE, eval=TRUE, echo=FALSE, message=FALSE, warning=FALSE, results="hide">>=
 
@@ -94,59 +97,46 @@ pair_icon_latex<-data.table(
 )
 
 
-# table title
-t1<-paste0(c(
-  "{\\bf \\Tstrut \\Bstrut DUKE: ",
-"position size as ADV multiple",
-" / ",
-"pair marginal risk contribution in \\sfrac{1}{100}'ths of a bp",
-" / ",
-"gross exposure",
-"}"
-),collapse="")
-
-# format
-a1<-"@{}|l|@{}" #\\hskip0pt
-
-pm_color_code_key<-paste0(
-  "\\colorbox{",sort(unique(pair2pm(colnames(duke_pair_days)))),"!20}{",
-  sort(unique(pair2pm(colnames(duke_pair_days)))),
-  "}",
-  collapse=","
-)
-
 @
 \newpage
 \Sexpr{paste(manager_col$latex_col_def,collapse="")}
 
 <<, cache=FALSE, eval=TRUE, echo=FALSE, message=FALSE, warning=FALSE, results="hide">>=
-liquidity_vs_marginal_risk<-data.table(df2matrix(data.table(
+
+liquidity_vs_marginal_risk<-df2matrix(data.table(
      x=apply(abs(duke_pair_days),2,max),
      y=sd(duke_local_pnl)-apply(duke_drop_one_pair_pnl,2,sd),
-     text=pair_icon_latex$latex
-)))
+     text=pair_layout$text
+))
+
 @
 
 \begin{center}
 \setlength{\tabcolsep}{1pt}
-\begin{tabular}{b{0.5cm} c}
+\begin{tabular}{m{0.5cm} m{20cm}}
+\hline
+\rowcolor{gray!20}
+\multicolumn{2}{c}{\bf DUKE: marginal risk contribution vs liquidity, all pairs} \\ \\
 \rotatebox[origin=c]{90}{Increasing marginal contribution to DUKE risk\tikz[baseline=-0.5ex]{\draw[line width=1pt, ->] (0, 0)--(2cm,0);}} 
 & 
-\Sexpr{ntable(
-  liquidity_vs_marginal_risk,
-  add_rownames=FALSE,
-  add_header=FALSE,
-  alternating=FALSE,
-  pre_title_hline=TRUE,
-  title=large_bold("DUKE: marginal risk contribution vs liquidity"),
-  title_align="|c|",
-  post_title_hline=TRUE,
-  row_end="\\hline",
-  align=a1,
-  scale=0.6
-)} 
-\\[1mm]
-& \Tstrut Increasing ADV multiple \tikz[baseline=-0.5ex]{\draw[line width=1pt, ->] (0, 0)--(2cm,0);} \\
+\resizebox{20cm}{20cm}{\Sexpr{
+tikz_plot_matrix(
+  content=apply(
+    liquidity_vs_marginal_risk,
+    1:2,
+    function(e)ifelse(match(pair2manager(e),managers,nomatch=0)>0,icon(e,width="18mm",height="18mm"),"")
+  ),
+  node=apply(
+    liquidity_vs_marginal_risk,
+    1:2,
+    function(e)ifelse(match(pair2manager(e),managers[5],nomatch=0)>0 & runif(1)>0.5,
+    "draw,inner sep=1pt,outer sep=0pt,fill=red!20",
+    "draw,inner sep=1pt,outer sep=0pt"
+    )
+  )
+)}} 
+\\
+& \multicolumn{1}{c}{\Tstrut Increasing ADV multiple \tikz[baseline=-0.5ex]{\draw[line width=1pt, ->] (0, 0)--(2cm,0);}} \\
 \end{tabular}
 \end{center}
 
@@ -158,14 +148,14 @@ liquidity_vs_marginal_risk<-data.table(df2matrix(data.table(
 \hline
 \multicolumn{2}{c}{\bf Table key} \\
 \hline
-\Sexpr{pair_icon_latex$latex[1]} 
+\Sexpr{icon(images$name[1],width="30mm",height="30mm")} 
 &
 \begin{tabular}{l}
 Pair id, color-coded by PM : \Sexpr{pm_color_code_key} \\
 3 weeks price action: (\Sexpr{triangle_up("green")}) up, (\Sexpr{triangle_dn("red")}) dn, (\Sexpr{cross("black",size="1ex",raise="0ex")}) flat  \\
 Size in ADV multiples / Marginal risk contribution in 100th's of daily bp volatility / Gross in bps \\
 {\bf 14 day RSI} RSI, last relative price location inside {\bf 6 month range} $100*\frac{LAST-LOW}{HIGH-LOW}$  \\
-Relative price plot based on current exposures, same as Bloomberg CIX. \Sexpr{dot("red")} 3m low, \Sexpr{dot("green")} 3m high \\
+12m, 6m, 1m relative price plot, current exposures, same as Bloomberg CIX. \Sexpr{dot("red")} low, \Sexpr{dot("green")} high \\
 Long tickers, first 10 letters.  Final \Sexpr{cross("black",size="1ex")} if list was clipped to 10 letters due to length. \\
 Short tickers, first 10 letters.  Final \Sexpr{cross("black",size="1ex")} if list was clipped to 10 letters due to length. \\
 \end{tabular} \\
@@ -179,105 +169,68 @@ Short tickers, first 10 letters.  Final \Sexpr{cross("black",size="1ex")} if lis
 
 \newpage
 <<, cache=FALSE, eval=TRUE, echo=FALSE, message=FALSE, warning=FALSE, results="hide">>=
-gross_vs_marginal_risk<-data.table(df2matrix(data.table(
+
+gross_vs_marginal_risk<-df2matrix(data.table(
      x=apply(abs(duke_pair_exposure),2,sum),
      y=sd(duke_local_pnl)-apply(duke_drop_one_pair_pnl,2,sd),
-     text=pair_icon_latex$latex
-)))
+     text=pair_layout$text
+))
+
 @
 
 \begin{center}
 \setlength{\tabcolsep}{1pt}
-\begin{tabular}{b{0.5cm} c}
+\begin{tabular}{m{0.5cm} m{20cm}}
+\hline
+\rowcolor{gray!20}
+\multicolumn{2}{c}{\bf DUKE: marginal risk contribution vs gross exposure, all pairs} \\ \\
 \rotatebox[origin=c]{90}{Increasing marginal contribution to DUKE risk\tikz[baseline=-0.5ex]{\draw[line width=1pt, ->] (0, 0)--(2cm,0);}} 
 & 
-\Sexpr{ntable(
-  gross_vs_marginal_risk,
-  add_rownames=FALSE,
-  add_header=FALSE,
-  alternating=FALSE,
-  pre_title_hline=TRUE,
-  title=large_bold("DUKE: marginal risk contribution vs gross exposure"),
-  title_align="|c|",
-  post_title_hline=TRUE,
-  row_end="\\hline",
-  align=a1,
-  scale=0.6
-)} 
-\\[1mm]
-& \Tstrut Increasing gross exposure \tikz[baseline=-0.5ex]{\draw[line width=1pt, ->] (0, 0)--(2cm,0);} \\
+\resizebox{20cm}{20cm}{\Sexpr{
+tikz_plot_matrix(
+  content=apply(
+    gross_vs_marginal_risk,
+    1:2,
+    function(e)ifelse(match(pair2manager(e),managers,nomatch=0)>0,icon(e,width="18mm",height="18mm"),"")
+  ),
+  node=apply(
+    gross_vs_marginal_risk,
+    1:2,
+    function(e)ifelse(match(pair2manager(e),managers[5],nomatch=0)>0 & runif(1)>0.5,
+    "draw,inner sep=1pt,outer sep=0pt,fill=red!20",
+    "draw,inner sep=1pt,outer sep=0pt"
+    )
+  )
+)}} 
+\\
+& \multicolumn{1}{c}{\Tstrut Increasing gross exposure \tikz[baseline=-0.5ex]{\draw[line width=1pt, ->] (0, 0)--(2cm,0);}} \\
 \end{tabular}
 \end{center}
 
-\newpage
-<<, cache=FALSE, eval=TRUE, echo=FALSE, message=FALSE, warning=FALSE, results="hide">>=
-gross_vs_outright_risk<-data.table(df2matrix(data.table(
-     x=apply(abs(duke_pair_exposure),2,sum),
-     y=scrub(apply(duke_pair_local_pnl,2,sd)/apply(abs(duke_pair_exposure),2,sum)),
-     text=pair_icon_latex$latex
-)))
-@
+\vskip 1cm
 
 \begin{center}
-\setlength{\tabcolsep}{1pt}
-\begin{tabular}{b{0.5cm} c}
-\rotatebox[origin=c]{90}{Increasing outright unit pair risk\tikz[baseline=-0.5ex]{\draw[line width=1pt, ->] (0, 0)--(2cm,0);}} 
-& 
-\Sexpr{ntable(
-  gross_vs_outright_risk,
-  add_rownames=FALSE,
-  add_header=FALSE,
-  alternating=FALSE,
-  pre_title_hline=TRUE,
-  title=large_bold("DUKE: outright pair unit risk vs gross exposure"),
-  title_align="|c|",
-  post_title_hline=TRUE,
-  row_end="\\hline",
-  align=a1,
-  scale=0.6
-)} 
-\\[1mm]
-& \Tstrut Increasing gross exposure \tikz[baseline=-0.5ex]{\draw[line width=1pt, ->] (0, 0)--(2cm,0);} \\
+\scalebox{0.5}{
+\begin{tabular}{m{4cm} m{16cm}}
+\hline
+\multicolumn{2}{c}{\bf Table key} \\
+\hline
+\Sexpr{icon(images$name[1],width="30mm",height="30mm")} 
+&
+\begin{tabular}{l}
+Pair id, color-coded by PM : \Sexpr{pm_color_code_key} \\
+3 weeks price action: (\Sexpr{triangle_up("green")}) up, (\Sexpr{triangle_dn("red")}) dn, (\Sexpr{cross("black",size="1ex",raise="0ex")}) flat  \\
+Size in ADV multiples / Marginal risk contribution in 100th's of daily bp volatility / Gross in bps \\
+{\bf 14 day RSI} RSI, last relative price location inside {\bf 6 month range} $100*\frac{LAST-LOW}{HIGH-LOW}$  \\
+12m, 6m, 1m relative price plot, current exposures, same as Bloomberg CIX. \Sexpr{dot("red")} low, \Sexpr{dot("green")} high \\
+Long tickers, first 10 letters.  Final \Sexpr{cross("black",size="1ex")} if list was clipped to 10 letters due to length. \\
+Short tickers, first 10 letters.  Final \Sexpr{cross("black",size="1ex")} if list was clipped to 10 letters due to length. \\
+\end{tabular} \\
+\hline
 \end{tabular}
+}
 \end{center}
 
-<<, cache=FALSE, eval=TRUE, echo=FALSE, message=FALSE, warning=FALSE, results="hide">>=
-z<-sd(duke_local_pnl)-apply(duke_drop_one_pair_pnl,2,sd)
-x<-mapply(function(x,y){
-       if(any(c(sd(x),sd(y))==0))return(0)
-       cor(x,y)
-      },data.table(duke_pair_long_pnl),data.table(duke_pair_short_pnl))
-y<-scrub((sd(duke_local_pnl)-apply(duke_drop_one_pair_pnl,2,sd))/apply(abs(duke_pair_exposure),2,sum))
-
-cor_vs_marginal_risk<-data.table(df2matrix(data.table(
-     x=x,
-     y=y,
-     text=pair_icon_latex$latex
-)))
-@
-
-\begin{center}
-\setlength{\tabcolsep}{1pt}
-\begin{tabular}{b{0.5cm} c}
-\rotatebox[origin=c]{90}{Increasing unit marginal contribution to DUKE risk\tikz[baseline=-0.5ex]{\draw[line width=1pt, ->] (0, 0)--(2cm,0);}} 
-& 
-\Sexpr{ntable(
-  cor_vs_marginal_risk,
-  add_rownames=FALSE,
-  add_header=FALSE,
-  alternating=FALSE,
-  pre_title_hline=TRUE,
-  title=large_bold("DUKE: unit marginal pair risk vs correlation between long and short leg"),
-  title_align="|c|",
-  post_title_hline=TRUE,
-  row_end="\\hline",
-  align=a1,
-  scale=0.6
-)} 
-\\[1mm]
-& \Tstrut Increasing correlation between long and short leg \tikz[baseline=-0.5ex]{\draw[line width=1pt, ->] (0, 0)--(2cm,0);} \\
-\end{tabular}
-\end{center}
 
 <<, cache=FALSE, eval=TRUE, echo=FALSE, message=FALSE, warning=FALSE, results="hide">>=
 

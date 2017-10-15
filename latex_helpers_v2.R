@@ -346,6 +346,35 @@ make_tikz_line<-function(
   )
 }
 
+# laout a data.table of content as tikz nodes
+tikz_plot_nodes<-function(df,units="mm",node="draw,inner sep=1pt,outer sep=0pt"){
+  coordinates<-paste0("(",
+                      stri_trim(format(df$x,scientific=FALSE)),units,
+                      ",",
+                      stri_trim(format(df$y,scientific=FALSE)),units,
+                      ")")
+  nodes<-paste0(coordinates," ","node[",node,"]","{",df$text,"}",sep="")
+  path<-paste("\\path",paste0(nodes,collapse=" "),";")
+  paste0("\\tikz{",path,"}\n")
+}
+
+# layout content in a matrix, along with a matrix of formatting info
+constant<-function(x)function(y)x
+tikz_plot_matrix<-function(
+  content,
+  xscale=c(0,200),
+  yscale=c(0,200),
+  units="mm",
+  node=apply(content,1:2,constant("draw,inner sep=1pt,outer sep=0pt"))
+){
+  df<-data.table(
+    x=rescale(as.vector(col(content)),xscale),
+    y=rescale(as.vector(row(content)),yscale),
+    text=as.vector(content),
+    node=as.vector(node)
+  )[text!=""]
+  tikz_plot_nodes(df,units=units,node=df$node)
+}
 
 
 
