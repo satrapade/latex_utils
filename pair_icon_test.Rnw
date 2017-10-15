@@ -10,7 +10,7 @@
 \usetikzlibrary{shapes.geometric}
 \usetikzlibrary{shapes.misc}
 \usetikzlibrary{external}
-\tikzexternalize[prefix=tikz-figures/] % activate!
+%\tikzexternalize[prefix=tikz-figures/] % activate!
 
 \renewcommand{\familydefault}{\sfdefault} % sans serif
 
@@ -97,6 +97,77 @@ fwrite(data.table(duke_manager_local_pnl),"duke_manager_local_pnl.csv")
 fwrite(data.table(duke_drop_one_manager_pnl),"duke_drop_one_manager_pnl.csv")
 fwrite(data.table(duke_drop_one_pair_pnl),"duke_drop_one_pair_pnl.csv")
 
+#
+# pair icon elements
+#
+
+# tickers in long/short leg
+pair_leg<-function(pair,exposure=duke_pair_exposure,direction=1,max_char=12){
+  i<-which(direction*exposure[,pair]>0)
+  s1<-rownames(exposure)[i]
+  s2<-gsub("( [A-Z]{2} Equity$)|( Index$)","",s1)
+  s3<-paste0(s2,collapse="-")
+  if(nchar(s3)>max_char){
+    s4<-paste0("{\\small ",stri_sub(s3,1,max_char),"}",cross("black",size="1ex",raise="-0.2ex"))
+  }else{
+    s4<-paste("{\\small ",s3,"}")
+  }
+  s4
+}
+
+# pair name color-coded with assigned pm color
+pair_with_pm_color<-function(pair)paste0("\\cellcolor{",pair2pm(pair),"!33}",pair)
+
+# pair sparline
+pair_sparkline<-function(
+  pair,
+  w=365,
+  pair_long_pnl=duke_pair_long_pnl,
+  pair_short_pnl=duke_pair_short_pnl
+){
+  long_pnl<-duke_pair_long_pnl[,pair]
+  short_pnl<-duke_pair_short_pnl[,pair]
+  long_px<-cumprod(c(0,tail(long_pnl,w))+1)
+  short_px<-cumprod(c(0,tail(short_pnl,w))+1)
+  rel_px<-rescale(long_px/short_px)
+  kpx<-kernapply(rel_px,kernel("daniell",as.integer(length(rel_px)/10)))
+  smooth_px<-kpx[seq(1,length(kpx),length.out=min(20,length(kpx)))]
+  res<-make_tikz_line(smooth_px,width=6,height=2,line_width=0.2,dot_size=0.5,units="mm",back_txt="")
+  paste0("\\fbox{",res,"}")
+}
+
+pair_price_action<-function(pair,pair_local_pnl=duke_pair_local_pnl,w=21){
+  pnl<-tail(pair_local_pnl[,pair],21)
+  txt<-make_tikz_price_action(pnl,width=30,height=30,units="mm")
+  txt
+}
+
+pair_technicals<-function(
+  pair,
+  w=365,
+  pair_long_pnl=duke_pair_long_pnl,
+  pair_short_pnl=duke_pair_short_pnl,
+  pair_days=duke_pair_days,
+  local_pnl=duke_local_pn,
+  drop_one_pair_pnl=duke_drop_one_pair_pnl,
+  pair_exposure=duke_pair_exposure
+){
+  long_pnl<-duke_pair_long_pnl[,pair]
+  short_pnl<-duke_pair_short_pnl[,pair]
+  long_px<-cumprod(c(0,tail(long_pnl,w))+1)
+  short_px<-cumprod(c(0,tail(short_pnl,w))+1)
+  rel_px<-rescale(long_px/short_px)
+  rng<-100*(tail(re_px,1)-min(rel_px))/diff(range(rel_px))
+  rsi<-round(tail(rsi(diff(rel_px),14),1),digits=0)
+  days<-max(abs(pair_days[,pair]))
+  msd<-100*10000*(sd(local_pnl)-sd(drop_one_pair_pnl[,pair]))
+  gross<-sum(abs(pair_exposure[,pair]))
+}
+
+#
+#
+#
+
 days<-apply(abs(duke_pair_days),2,max)
 msd<-100*10000*(sd(duke_local_pnl)-apply(duke_drop_one_pair_pnl,2,sd))
 
@@ -105,68 +176,13 @@ msd_text<-paste0("r",ifelse(msd<0,"\\textcolor{black}{\\underline{(","\\textcolo
 gross_text<-paste0("g",round(10000*apply(abs(duke_pair_exposure),2,sum),digits=0))
 grid_text<-paste0("\\begin{tabular}{@{}c@{\\hskip 2ex}c@{\\hskip 2ex}c@{}}",days_text," & ",msd_text," & ",gross_text,"\\end{tabular}")
   
-pair_longs<-mapply(function(i){
-  s1<-rownames(duke_pair_exposure)[which(i>0)]
-  s2<-gsub("( [A-Z]{2} Equity$)|( Index$)","",s1)
-  s3<-paste0(s2,collapse="-")
-  if(nchar(s3)>12){
-    s4<-paste0("{\\small ",stri_sub(s3,1,12),"}",cross("black",size="1ex",raise="-0.2ex"))
-  }else{
-    s4<-paste("{\\small ",s3,"}")
-  }
-  s4
-},data.table(pmax(duke_pair_exposure,0)))
-
-pair_shorts<-mapply(function(i){
-  s1<-rownames(duke_pair_exposure)[which(i>0)]
-  s2<-gsub("( [A-Z]{2} Equity$)|( Index$)","",s1)
-  s3<-paste0(s2,collapse="-")
-  if(nchar(s3)>12){
-    s4<-paste0("{\\small ",stri_sub(s3,1,12),"}",cross("black",size="1ex",raise="-0.2ex"))
-  }else{
-    s4<-paste("{\\small ",s3,"}")
-  }
-  s4
-},data.table(pmax(-duke_pair_exposure,0)))
-
-pair_12m_sparks<-mapply(function(long_pnl,short_pnl){
-      long_px<-cumprod(c(0,tail(long_pnl,365))+1)
-      short_px<-cumprod(c(0,tail(short_pnl,365))+1)
-      rel_px<-rescale(long_px/short_px)
-      kpx<-kernapply(rel_px,kernel("daniell", 30))
-      smooth_px<-kpx[seq(1,length(kpx),length.out=20)]
-      res<-make_tikz_line(smooth_px,width=6,height=2,line_width=0.2,dot_size=0.5,units="mm",back_txt="")
-      paste0("\\fbox{",res,"}")
-  },data.table(duke_pair_long_pnl),data.table(duke_pair_short_pnl))
-
-pair_6m_sparks<-mapply(function(long_pnl,short_pnl){
-      long_px<-cumprod(c(0,tail(long_pnl,182))+1)
-      short_px<-cumprod(c(0,tail(short_pnl,182))+1)
-      rel_px<-rescale(long_px/short_px)
-      kpx<-kernapply(rel_px,kernel("daniell", 10))
-      smooth_px<-kpx[seq(1,length(kpx),length.out=20)]
-      res<-make_tikz_line(smooth_px,width=6,height=2,line_width=0.2,dot_size=0.5,units="mm",back_txt="")
-      paste0("\\fbox{",res,"}")
-  },data.table(duke_pair_long_pnl),data.table(duke_pair_short_pnl))
-
-pair_1m_sparks<-mapply(function(long_pnl,short_pnl){
-      long_px<-cumprod(c(0,tail(long_pnl,30))+1)
-      short_px<-cumprod(c(0,tail(short_pnl,30))+1)
-      rel_px<-rescale(long_px/short_px)
-      kpx<-kernapply(rel_px,kernel("daniell", 3))
-      smooth_px<-kpx[seq(1,length(kpx),length.out=20)]
-      res<-make_tikz_line(smooth_px,width=6,height=2,line_width=0.2,dot_size=0.5,units="mm",back_txt="")
-      paste0("\\fbox{",res,"}")
-  },data.table(duke_pair_long_pnl),data.table(duke_pair_short_pnl))
-
-pair_latest_action<-mapply(function(long_pnl,short_pnl){
-      pnl<-tail(long_pnl+short_pnl,21)
-      txt<-make_tikz_price_action(pnl,width=30,height=30,units="mm")
-      paste0(txt,collapse="")
-      
-    },data.table(duke_pair_long_pnl),data.table(duke_pair_short_pnl))
-
-pair_pm<-paste0("\\cellcolor{",pair2pm(colnames(duke_pair_days)),"!33}",colnames(duke_pair_days))
+pair_longs<-mapply(function(i)pair_leg(pair=i,direction=1),pairs)
+pair_shorts<-mapply(function(i)pair_leg(pair=i,direction=(-1)),pairs)
+pair_12m_sparks<-mapply(pair_sparkline,pairs,MoreArgs = list(w=360))
+pair_6m_sparks<-mapply(pair_sparkline,pairs,MoreArgs = list(w=182))
+pair_1m_sparks<-mapply(pair_sparkline,pairs,MoreArgs = list(w=30))
+pair_latest_action<-mapply(pair_price_action,pairs,MoreArgs = list(w=21))
+pair_pm<-mapply(pair_with_pm_color,pairs)
 
 pair_rng<-paste0("rng",round(apply(duke_pair_local_pnl,2,function(x){
       px<-cumsum(tail(x,182))
@@ -180,6 +196,19 @@ pair_stats<-structure(df_row2tabular(tm=rbind(c(1,2,3),c(4,5,6),c(7,8,9)),df=dat
   pair_rsi,pair_rng,rep(" ",length(pair_rsi)),
   pair_12m_sparks,pair_6m_sparks,pair_1m_sparks
 ),align="l"),.Names=colnames(duke_pair_days))
+
+
+
+
+icon<-function(pair){
+  paste0(
+    paste0("\\multicolumn{1}{@{}c@{}}{",pair_pm,"}"),
+    paste0("\\multicolumn{1}{@{}c@{}}{",pair_latest_action,"}"),
+    paste0("\\multicolumn{1}{@{}c@{}}{",pair_stats,"}"),
+    pair_longs,
+    pair_shorts
+  )
+}
 
 #
 #

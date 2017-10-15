@@ -2,9 +2,9 @@
 
 make_external_latex<-function(
   latex="testing123",
-  filename="test"
+  filename=NULL
 )paste0(
-  "\\tikzsetnextfilename{",filename,"}",
+  if(!is.null(filename)){paste0("\\tikzsetnextfilename{",filename,"}"," ")}else{""},
   "\\tikz{\\path (0,0) node[inner sep=0,outer sep=0]{",
   latex,
   "};}"
@@ -296,11 +296,11 @@ make_tikz_price_action<-function(
     node,
     "{}",
     " ",
-    collapse="--"
+    collapse=" "
   )
   paste0(
     "\\tikz{",
-    "\\draw[white] ",path,";",
+    "\\path ",path,";",
     "}"
   ) 
 }
