@@ -64,7 +64,8 @@ adv<-matrix(
 pair_exposure<-mapply(function(i){
   selected_stocks<-(seq_along(stocks) %in% sample(seq_along(stocks),sample(1:5,1)))
   stock_direction<-sample(c(-1,1),length(stocks),replace=TRUE)
-  structure(selected_stocks*stock_direction,.Names=stocks)
+  stock_bps<-runif(length(stocks),10,250)/10000
+  structure(selected_stocks*stock_direction*stock_bps,.Names=stocks)
 },pairs)
 pair_days<-pair_exposure*adv[,rep(1,ncol(pair_exposure))]
 # pair p&l 

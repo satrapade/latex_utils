@@ -281,13 +281,14 @@ df2matrix<-function(
   col_count=ceiling(sqrt(nrow(df)))+col_slack,
   row_count=ceiling(nrow(df)/col_count)+row_slack,
   col_slack=1,
-  row_slack=1
+  row_slack=1,
+  table_target=FALSE
 ){
   m<-matrix("",nrow=row_count,ncol=col_count)
   gx<-as.vector(col(m))
   gy<-as.vector(row(m))
-  dfx<-rescale(df$x,range(gx))
-  dfy<-rescale(df$y,range(gy))
+  dfx<-rescale(df$x,range(gx)) #bin(df$x,max(gx))
+  dfy<-rescale(df$y,range(gy)) #bin(df$y,max(gy))
   mx<-matrix(dfx,ncol=1)[,rep(1,length(gx))]
   my<-matrix(dfy,ncol=1)[,rep(1,length(gx))]
   gridx<-matrix(gx,nrow=1)[rep(1,length(dfx)),]
@@ -296,7 +297,10 @@ df2matrix<-function(
   dy<-(my-gridy)^2
   d<-dx+dy
   t2g <- solve_LSAP(d)
-  m[cbind(nrow(m)-gy[t2g]+1,gx[t2g])]<-df$text
+  m[cbind(
+    table_target*((nrow(m)-1)*gy[t2g]+1)+(!table_target)*gy[t2g],
+    gx[t2g]
+  )]<-df$text
   m
 }
 

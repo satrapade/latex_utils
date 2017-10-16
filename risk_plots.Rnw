@@ -42,7 +42,7 @@ source("latex_helpers_v2.R")
 
 <<, cache=FALSE, eval=TRUE, echo=FALSE, message=FALSE, warning=FALSE, results="hide">>=
 
-data_directory<-"actual_data"
+data_directory<-"synthetic_data"
 prefix<-""
 row_names<-TRUE
 
@@ -281,6 +281,7 @@ pair_stats<-data.table(
     hdr=tbl(c("vol","of","pair","|","vol","of","beta","hedge"),align="@{}l@{}"),
     mapply(function(x,y){
       if(sd(y)<1e-10)return(0)
+      if(sd(x)<1e-10)return(0)
       pair_sd<-sd(x-y)
       beta<-cov(x,y)/var(y)
       optim_pair_sd<-sd(x-beta*y)

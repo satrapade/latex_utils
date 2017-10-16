@@ -34,7 +34,7 @@ source("sheet_utility_functions.R")
 source("latex_helpers_v2.R")
 
 
-data_directory<-"actual_data"
+data_directory<-"synthetic_data"
 prefix<-""
 row_names<-TRUE
 

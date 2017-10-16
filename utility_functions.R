@@ -46,6 +46,7 @@ replace_zero_with_last<-function(x,a=x!=0){
 }
 stopifnot(all(replace_zero_with_last(c(0,0,1,2,3,0,0,4,5,6,0,0))==c(1,1,1,2,3,3,3,4,5,6,6,6)))
 
+bin<-function(x,n=10)findInterval(x,quantile(x,seq(0,1,length.out=n+1)),rightmost.closed=TRUE)
 
 rec<-function(x)seq_along(x)-which(c(TRUE,tail(x,-1)>0))[cumsum(c(TRUE,tail(x,-1)>0))]
 meanrd<-function(x)mean(rec(cummax(cumsum(x))==cumsum(x)))
