@@ -75,13 +75,14 @@ drop_one_pair_pnl<-structure(
   pair_local_pnl%*%(1-diag(length(pairs))),
   dimnames=dimnames(pair_local_pnl)
 )
+
 # save pair-level data
-fwrite(data.table(pair_exposure),"synthetic_data/pair_exposure.csv")
-fwrite(data.table(pair_days),"synthetic_data/pair_days.csv")
-fwrite(data.table(pair_local_pnl),"synthetic_data/pair_local_pnl.csv")
-fwrite(data.table(pair_long_pnl),"synthetic_data/pair_long_pnl.csv")
-fwrite(data.table(pair_short_pnl),"synthetic_data/pair_short_pnl.csv")
-fwrite(data.table(drop_one_pair_pnl),"synthetic_data/drop_one_pair_pnl.csv")
+fwrite(data.table(instrument=rownames(pair_exposure),pair_exposure),"synthetic_data/pair_exposure.csv")
+fwrite(data.table(instrument=rownames(pair_days),pair_days),"synthetic_data/pair_days.csv")
+fwrite(data.table(instrument=rownames(pair_local_pnl),pair_local_pnl),"synthetic_data/pair_local_pnl.csv")
+fwrite(data.table(instrument=rownames(pair_long_pnl),pair_long_pnl),"synthetic_data/pair_long_pnl.csv")
+fwrite(data.table(instrument=rownames(pair_short_pnl),pair_short_pnl),"synthetic_data/pair_short_pnl.csv")
+fwrite(data.table(instrument=rownames(drop_one_pair_pnl),drop_one_pair_pnl),"synthetic_data/drop_one_pair_pnl.csv")
 
 
 # mapping matrix of pair ownership by manager
@@ -98,9 +99,9 @@ drop_one_manager_pnl<-structure(
   dimnames=dimnames(manager_local_pnl)
 )
 # save pm-level data
-fwrite(data.table(manager_exposure),"synthetic_data/manager_exposure.csv")
-fwrite(data.table(manager_local_pnl),"synthetic_data/manager_local_pnl.csv")
-fwrite(data.table(drop_one_manager_pnl),"synthetic_data/drop_one_manager_pnl.csv")
+fwrite(data.table(instrument=rownames(manager_exposure),manager_exposure),"synthetic_data/manager_exposure.csv")
+fwrite(data.table(instrument=rownames(manager_local_pnl),manager_local_pnl),"synthetic_data/manager_local_pnl.csv")
+fwrite(data.table(instrument=rownames(drop_one_manager_pnl),drop_one_manager_pnl),"synthetic_data/drop_one_manager_pnl.csv")
 
 # fund exposure
 exposure<-pair_exposure%*%matrix(1,ncol=1,nrow=length(pairs))
@@ -109,10 +110,10 @@ long_exposure<-pmax(exposure,0)
 short_exposure<-pmax(-exposure,0)
 local_pnl<-tret%*%exposure
 # save fund-level data
-fwrite(data.table(exposure),"synthetic_data/exposure.csv")
-fwrite(data.table(long_exposure),"synthetic_data/long_exposure.csv")
-fwrite(data.table(short_exposure),"synthetic_data/short_exposure.csv")
-fwrite(data.table(local_pnl),"synthetic_data/local_pnl.csv")
+fwrite(data.table(instrument=rownames(exposure),exposure),"synthetic_data/exposure.csv")
+fwrite(data.table(instrument=rownames(long_exposure),long_exposure),"synthetic_data/long_exposure.csv")
+fwrite(data.table(instrument=rownames(short_exposure),short_exposure),"synthetic_data/short_exposure.csv")
+fwrite(data.table(instrument=rownames(local_pnl),local_pnl),"synthetic_data/local_pnl.csv")
 
 
 
