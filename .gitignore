@@ -13,6 +13,7 @@
 *.auxlock
 *.gz
 init_files.R
+stegafun.R
 tikz-figures/*.*
 figure/*.*
 
