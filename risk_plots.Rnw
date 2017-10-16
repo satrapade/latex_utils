@@ -94,12 +94,16 @@ make_pair_layout<-function(
     "\\multicolumn{2}{c}{\\bf ",title,"} \\\\ \\\\",
     "\\rotatebox[origin=c]{90}{",ytext,"\\tikz[baseline=-0.5ex]{\\draw[line width=1pt, ->] (0, 0)--(2cm,0);}} ",
     " & ",
-    "\\resizebox{20cm}{20cm}{",
+    #"\\resizebox{20cm}{20cm}{",
     tikz_plot_matrix(
       content=apply(
         layout_matrix,
         1:2,
-        function(e)ifelse(match(pair2pm(e),managers,nomatch=0)>0,icon(icon_name=e,width="18mm",height="18mm"),"")
+        function(e)ifelse(
+          match(pair2pm(e),managers,nomatch=0)>0,
+          icon(icon_name=e,width=paste0(floor(178/ncol(layout_matrix)),"mm"),height=paste0(floor(178/nrow(layout_matrix)),"mm")),
+          ""
+        )
       ),
       node=apply(
         layout_matrix,
@@ -109,9 +113,12 @@ make_pair_layout<-function(
           "draw,inner sep=1pt,outer sep=0pt,fill=red!20",
           "draw,inner sep=1pt,outer sep=0pt"
         )
-      )
+      ),
+      xscale=c(0,180),
+      yscale=c(0,180),
+      units="mm"
     ),
-    "}",
+    #"}",
     "\\\\",
     "&", 
     "\\multicolumn{1}{c}{\\Tstrut ",xtext," \\tikz[baseline=-0.5ex]{\\draw[line width=1pt, ->] (0, 0)--(2cm,0);}} \\\\",
@@ -196,15 +203,24 @@ pair_stats<-data.table(
 )}
 \rowcolors{2}{white}{white}
 
+<<, cache=FALSE, eval=TRUE, echo=FALSE, message=FALSE, warning=FALSE, results="hide">>=
+col_slack <- 20
+row_slack <- 20
+@
+
 \newpage
 <<, cache=FALSE, eval=TRUE, echo=FALSE, message=FALSE, warning=FALSE, results="hide">>=
 
 liquidity_vs_marginal_risk<-make_pair_layout(
-    layout_matrix=df2matrix(data.table(
+    layout_matrix=df2matrix(
+      df=data.table(
         x=apply(abs(duke_pair_days),2,max),
         y=sd(duke_local_pnl)-apply(duke_drop_one_pair_pnl,2,sd),
         text=images$name
-    )),
+      ),
+      col_slack = col_slack,
+      row_slack = row_slack
+    ),
     xtext="Increasing ADV multiple",
     ytext="Increasing marginal contribution to DUKE risk",
     title="DUKE: marginal risk contribution vs liquidity, all pairs"
@@ -216,11 +232,15 @@ liquidity_vs_marginal_risk<-make_pair_layout(
 \newpage
 <<, cache=FALSE, eval=TRUE, echo=FALSE, message=FALSE, warning=FALSE, results="hide">>=
 gross_vs_marginal_risk<-make_pair_layout(
-    layout_matrix=df2matrix(data.table(
-     x=apply(abs(duke_pair_exposure),2,sum),
-     y=sd(duke_local_pnl)-apply(duke_drop_one_pair_pnl,2,sd),
-     text=images$name
-    )),
+    layout_matrix=df2matrix(
+      data.table(
+        x=apply(abs(duke_pair_exposure),2,sum),
+        y=sd(duke_local_pnl)-apply(duke_drop_one_pair_pnl,2,sd),
+        text=images$name
+      ),
+      col_slack = col_slack,
+      row_slack = row_slack
+    ),
     xtext="Increasing gross exposure",
     ytext="Increasing marginal contribution to DUKE risk",
     title="DUKE: marginal risk contribution vs gross, all pairs"
@@ -232,11 +252,15 @@ gross_vs_marginal_risk<-make_pair_layout(
 \newpage
 <<, cache=FALSE, eval=TRUE, echo=FALSE, message=FALSE, warning=FALSE, results="hide">>=
 gross_vs_unit_marginal_risk<-make_pair_layout(
-    layout_matrix=df2matrix(data.table(
-     x=apply(abs(duke_pair_exposure),2,sum),
-     y=(sd(duke_local_pnl)-apply(duke_drop_one_pair_pnl,2,sd))/apply(abs(duke_pair_exposure),2,sum),
-     text=images$name
-    )),
+    layout_matrix=df2matrix(
+      data.table(
+        x=apply(abs(duke_pair_exposure),2,sum),
+        y=(sd(duke_local_pnl)-apply(duke_drop_one_pair_pnl,2,sd))/apply(abs(duke_pair_exposure),2,sum),
+        text=images$name
+      ),
+      col_slack = col_slack,
+      row_slack = row_slack
+    ),
     xtext="Increasing gross exposure",
     ytext="Increasing unit marginal contribution to DUKE risk",
     title="DUKE: unit marginal risk contribution vs gross, all pairs"
@@ -253,11 +277,15 @@ x0<-mapply(function(x,y){
   cor(x,y)
 },data.table(duke_pair_long_pnl),data.table(duke_pair_short_pnl))
 long_short_correlation_vs_unit_marginal_risk<-make_pair_layout(
-    layout_matrix=df2matrix(data.table(
-     x=x0,
-     y=(sd(duke_local_pnl)-apply(duke_drop_one_pair_pnl,2,sd))/apply(abs(duke_pair_exposure),2,sum),
-     text=images$name
-    )),
+    layout_matrix=df2matrix(
+      data.table(
+        x=x0,
+        y=(sd(duke_local_pnl)-apply(duke_drop_one_pair_pnl,2,sd))/apply(abs(duke_pair_exposure),2,sum),
+        text=images$name
+      ),
+      col_slack = col_slack,
+      row_slack = row_slack
+    ),
     xtext="Increasing correlation of longs with shorts",
     ytext="Increasing unit marginal contribution to DUKE risk",
     title="DUKE: unit marginal risk contribution vs long/short correlation, all pairs"
@@ -274,11 +302,15 @@ x0<-(-1)*mapply(function(x,y){
   pair_sd/(long_sd+short_sd)
 },data.table(duke_pair_long_pnl),data.table(duke_pair_short_pnl))
 diversification_vs_unit_marginal_risk<-make_pair_layout(
-    layout_matrix=df2matrix(data.table(
-      x=x0,
-      y=(sd(duke_local_pnl)-apply(duke_drop_one_pair_pnl,2,sd))/apply(abs(duke_pair_exposure),2,sum),
-      text=images$name
-    )),
+    layout_matrix=df2matrix(
+      data.table(
+        x=x0,
+        y=(sd(duke_local_pnl)-apply(duke_drop_one_pair_pnl,2,sd))/apply(abs(duke_pair_exposure),2,sum),
+        text=images$name
+      ),
+      col_slack = col_slack,
+      row_slack = row_slack
+    ),
     xtext="Increasing diversification benefit",
     ytext="Increasing unit marginal contribution to DUKE risk",
     title="DUKE: unit marginal risk contribution vs diversification benefit, all pairs"
@@ -296,11 +328,15 @@ x0<-(-1)*mapply(function(x,y){
   pair_dd/(long_dd+short_dd)
 },data.table(duke_pair_long_pnl),data.table(duke_pair_short_pnl))
 diversification_vs_unit_marginal_risk<-make_pair_layout(
-    layout_matrix=df2matrix(data.table(
-      x=x0,
-      y=(sd(duke_local_pnl)-apply(duke_drop_one_pair_pnl,2,sd))/apply(abs(duke_pair_exposure),2,sum),
-      text=images$name
-    )),
+    layout_matrix=df2matrix(
+      data.table(
+        x=x0,
+        y=(sd(duke_local_pnl)-apply(duke_drop_one_pair_pnl,2,sd))/apply(abs(duke_pair_exposure),2,sum),
+        text=images$name
+      ),
+      col_slack = col_slack,
+      row_slack = row_slack
+    ),
     xtext="Increasing drawdown reduction",
     ytext="Increasing unit marginal contribution to DUKE risk",
     title="DUKE: unit marginal risk contribution vs drawdown reduction, all pairs"
