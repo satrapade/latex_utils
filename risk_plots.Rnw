@@ -42,26 +42,44 @@ source("latex_helpers_v2.R")
 
 <<, cache=FALSE, eval=TRUE, echo=FALSE, message=FALSE, warning=FALSE, results="hide">>=
 
-duke_exposure<-load_matrix(paste0("duke_exposure.csv"),row_names = FALSE)
-duke_long_exposure<-load_matrix(paste0("duke_long_exposure.csv"),row_names = FALSE)
-duke_short_exposure<-load_matrix(paste0("duke_short_exposure.csv"),row_names = FALSE)
-duke_pair_exposure<-load_matrix(paste0("duke_pair_exposure.csv"),row_names = FALSE)
-duke_pair_days<-load_matrix(paste0("duke_pair_days.csv"),row_names = FALSE)
-duke_manager_exposure<-load_matrix(paste0("duke_manager_exposure.csv"),row_names = FALSE)
-duke_local_pnl<-load_matrix(paste0("duke_local_pnl.csv"),row_names = FALSE)
-duke_manager_local_pnl<-load_matrix(paste0("duke_manager_local_pnl.csv"),row_names = FALSE)
-duke_drop_one_manager_pnl<-load_matrix(paste0("duke_drop_one_manager_pnl.csv"),row_names = FALSE)
-duke_pair_local_pnl<-load_matrix(paste0("duke_pair_local_pnl.csv"),row_names = FALSE)
-duke_pair_long_pnl<-load_matrix(paste0("duke_pair_long_pnl.csv"),row_names = FALSE)
-duke_pair_short_pnl<-load_matrix(paste0("duke_pair_short_pnl.csv"),row_names = FALSE)
-duke_drop_one_pair_pnl<-load_matrix(paste0("duke_drop_one_pair_pnl.csv"),row_names = FALSE)
+data_directory<-"actual_data"
+prefix<-""
+row_names<-TRUE
 
-manager_col<-fread("manager_col.csv")
-pair_col<-fread("pair_col.csv")
+# pair-level data
+pair_exposure     <- load_matrix(paste0(data_directory,"/",prefix,"pair_exposure.csv"),row_names=row_names)
+pair_days         <- load_matrix(paste0(data_directory,"/",prefix,"pair_days.csv"),row_names=row_names)
+pair_local_pnl    <- load_matrix(paste0(data_directory,"/",prefix,"pair_local_pnl.csv"),row_names=row_names)
+pair_long_pnl     <- load_matrix(paste0(data_directory,"/",prefix,"pair_long_pnl.csv"),row_names=row_names)
+pair_short_pnl    <- load_matrix(paste0(data_directory,"/",prefix,"pair_short_pnl.csv"),row_names=row_names)
+drop_one_pair_pnl <- load_matrix(paste0(data_directory,"/",prefix,"drop_one_pair_pnl.csv"),row_names=row_names)
+
+# manager-level data
+manager_exposure     <- load_matrix(paste0(data_directory,"/",prefix,"manager_exposure.csv"),row_names=row_names)
+manager_local_pnl    <- load_matrix(paste0(data_directory,"/",prefix,"manager_local_pnl.csv"),row_names=row_names)
+drop_one_manager_pnl <- load_matrix(paste0(data_directory,"/",prefix,"drop_one_manager_pnl.csv"),row_names=row_names)
+
+# fund-level data
+exposure        <- load_matrix(paste0(data_directory,"/",prefix,"exposure.csv"),row_names=row_names)
+long_exposure   <- load_matrix(paste0(data_directory,"/",prefix,"long_exposure.csv"),row_names=row_names)
+short_exposure  <- load_matrix(paste0(data_directory,"/",prefix,"short_exposure.csv"),row_names=row_names)
+local_pnl       <- load_matrix(paste0(data_directory,"/",prefix,"local_pnl.csv"),row_names=row_names)
+
+# color assigment
+manager_col <- fread(paste0(data_directory,"/",prefix,"manager_col.csv"))
+pair_col    <- fread(paste0(data_directory,"/",prefix,"pair_col.csv"))
+
+#determine pairs, managers and pair-to-manager mapping
+pairs<-sort(unique(colnames(pair_exposure)))
+managers<-sort(unique(colnames(manager_exposure)))
+manager_pairs<-structure(
+  diag(length(managers))[match(gsub("[0-9]+","",pairs),managers),],
+  dimnames=list(pairs,managers)
+)
 
 pm_color_code_key<-paste0(
-  "\\colorbox{",sort(unique(pair2pm(colnames(duke_pair_days)))),"!20}{",
-  sort(unique(pair2pm(colnames(duke_pair_days)))),
+  "\\colorbox{",sort(unique(pair2pm(colnames(pair_days)))),"!20}{",
+  sort(unique(pair2pm(colnames(pair_days)))),
   "}",
   collapse=","
 )
@@ -75,7 +93,7 @@ icon<-function(icon_name,height="3cm",width="3cm",icon_table=images){
     "\\end{minipage}"
     )]
 }
-managers<-sort(unique(pair2pm(images$name)))
+
 
 
 make_pair_layout<-function(
@@ -99,7 +117,7 @@ make_pair_layout<-function(
       content=apply(
         layout_matrix,
         1:2,
-        function(e)ifelse(
+        function(e)ifelse( # some kind of selection can go here
           match(pair2pm(e),managers,nomatch=0)>0,
           icon(icon_name=e,width=paste0(floor(178/ncol(layout_matrix)),"mm"),height=paste0(floor(178/nrow(layout_matrix)),"mm")),
           ""
@@ -108,8 +126,8 @@ make_pair_layout<-function(
       node=apply(
         layout_matrix,
         1:2,
-        function(e)ifelse(
-          match(pair2pm(e),managers[5],nomatch=0)>0 & runif(1)>0.5,
+        function(e)ifelse( # or conditional formatting
+          match(pair2pm(e),managers[5],nomatch=0)>0 & FALSE,
           "draw,inner sep=1pt,outer sep=0pt,fill=red!20",
           "draw,inner sep=1pt,outer sep=0pt"
         )
@@ -144,12 +162,26 @@ selection_path<-function(n,normalize=TRUE){
   f<-matrix(apply(res,2,sum),nrow=1)[rep(1,nrow(res)),]
   res/f
 }
+path_samples<-500
 
-x<-duke_pair_local_pnl
-p1<-mapply(log,mapply(function(i)apply(x%*%(selection_path(ncol(x))[,1:ncol(x)]),2,sd),1:100,SIMPLIFY=FALSE),SIMPLIFY = FALSE)
+x<-pair_local_pnl
+p1<-mapply(
+  log,
+  mapply(function(i)apply(x%*%(selection_path(ncol(x))[,1:ncol(x)]),2,sd),1:path_samples,SIMPLIFY=FALSE),
+  SIMPLIFY = FALSE
+)
 
-x<-mapply(rnorm,mean=apply(duke_pair_local_pnl,2,mean),sd=apply(duke_pair_local_pnl,2,constant(0.01)),MoreArgs=list(n=nrow(duke_pair_local_pnl)))
-p2<-mapply(log,mapply(function(i)apply(x%*%(selection_path(ncol(x))[,1:ncol(x)]),2,sd),1:100,SIMPLIFY=FALSE),SIMPLIFY = FALSE)
+x<-mapply(
+  rnorm,
+  mean=apply(pair_local_pnl,2,constant(mean(pair_local_pnl))),
+  sd=apply(pair_local_pnl,2,constant(sd(pair_local_pnl))),
+  MoreArgs=list(n=nrow(pair_local_pnl))
+)
+p2<-mapply(
+  log,
+  mapply(function(i)apply(x%*%(selection_path(ncol(x))[,1:ncol(x)]),2,sd),1:path_samples,SIMPLIFY=FALSE),
+  SIMPLIFY = FALSE
+)
 
 p<-c(p1,p2)
 col<-rep(c(rgb(1,0,0,0.1),rgb(0,0,0,0.1)),c(length(p1),length(p2)))
@@ -160,11 +192,11 @@ plot_diversification_paths<-expression({
     xlim=c(1,length(p[[1]])),
     ylim=c(min(mapply(c,p)),max(mapply(c,p))),
     type="n",
-    main="Diversification benefit",
+    main=paste0("Diversification benefit : ",path_samples," path samples"),
     ylab="Log of portfolio volatility",
     xlab="Number of selected pairs"
   )
-  invisible(mapply(lines,x=p,col=col,MoreArgs=list(lwd=2)))
+  invisible(mapply(lines,x=p,col=col,MoreArgs=list(lwd=1)))
   NULL
 })
 
@@ -174,23 +206,88 @@ plot_diversification_paths<-expression({
 
 \newpage
 <<, cache=FALSE, eval=TRUE, echo=FALSE, message=FALSE, warning=FALSE, results="hide">>=
+maxdd<-function(x)max(cummax(cumsum(x))-cumsum(x))
+
 pair_stats<-data.table(
-  pair=colnames(duke_pair_local_pnl),
-  gross=apply(abs(duke_pair_exposure),2,sum),
-  marginal_risk=round(10000*(sd(duke_local_pnl)-apply(duke_drop_one_pair_pnl,2,sd)),digits=0),
-  unit_marginal=round(10000*(sd(duke_local_pnl)-apply(duke_drop_one_pair_pnl,2,sd))/apply(abs(duke_pair_exposure),2,sum),digits=0),
-  liquidity=round(apply(abs(duke_pair_days),2,max),digits=0),
-  corr=mapply(function(x,y){
+  ndx=structure(hdr="",paste0("{\\bf ",seq_along(colnames(pair_local_pnl)),"}")),
+  pair=colnames(pair_local_pnl),
+  long_count=structure(
+    hdr=tbl(c("L","\\#"),align="@{}l@{}"),
+    apply(pair_exposure>0,2,sum)
+  ),
+  short_count=structure(
+    hdr=tbl(c("S","\\#"),align="@{}l@{}"),
+    apply(pair_exposure<0,2,sum)
+  ),
+  gross=structure(
+    hdr=tbl(c("bp","G"),align="@{}l@{}"),
+    format=quote(n_fmt(this)),
+    round(10000*apply(abs(pair_exposure),2,sum),digits=0)
+  ),
+  net=structure(
+    hdr=tbl(c("bp","N"),align="@{}l@{}"),
+    format=quote(n_fmt(this)),
+    round(10000*apply(pair_exposure,2,sum),digits=0)
+  ),
+  marginal_risk=structure(
+    hdr=tbl(c("M","risk","$\\frac{bp}{100}$"),align="@{}l@{}",sep=" \\\\"),
+    format=quote(n_fmt(this)),
+    round(100*10000*(sd(local_pnl)-apply(drop_one_pair_pnl,2,sd)),digits=0)
+  ),
+  unit_marginal=structure(
+    hdr=tbl(c("U","M","risk","$\\frac{bp}{100}$"),align="@{}l@{}"),
+    format=quote(n_fmt(this)),
+    round(10000*(sd(local_pnl)-apply(drop_one_pair_pnl,2,sd))/apply(abs(pair_exposure),2,sum),digits=0)
+  ),
+  liquidity=structure(
+    hdr=tbl(c("max","adv","days","pos")),
+    round(apply(abs(pair_days),2,max),digits=1)
+  ),
+  corr=structure(
+    hdr=tbl(c("cor","L","vs","S","leg"),align="@{}l@{}"),
+    mapply(function(x,y){
       if(sd(x)<1e-10)return(0)
       if(sd(y)<1e-10)return(0)
-      round(100*cor(x,y),digits=0)
-  },data.table(duke_pair_long_pnl),data.table(duke_pair_short_pnl)),
-  vol=mapply(function(x,y){
-    pair_sd<-sd(x+y)
-    long_sd<-sd(x)
-    short_sd<-sd(y)
-    round(pair_sd/(long_sd+short_sd),digits=1)
-  },data.table(duke_pair_long_pnl),data.table(duke_pair_short_pnl))
+      round(100*cor(x,y),digits=1)
+    },data.table(pair_long_pnl),data.table(pair_short_pnl))
+  ),
+  vol=structure(
+    hdr=tbl(c("vol","of","pair","|","sum","of","vols"),align="@{}l@{}"),
+    mapply(function(x,y){
+      pair_sd<-sd(x-y)
+      long_sd<-sd(x)
+      short_sd<-sd(y)
+      round(pair_sd/(long_sd+short_sd),digits=2)
+    },x=data.table(pair_long_pnl),y=data.table(pair_short_pnl))
+  ),
+  maxdd=structure(
+    hdr=tbl(c("dd","of","pair","|","sum","of","dd's"),align="@{}l@{}"),
+    mapply(function(x,y){
+      pair_dd<-maxdd(x-y)
+      long_dd<-maxdd(x)
+      short_dd<-maxdd(y)
+      round(pair_dd/(long_dd+short_dd),digits=2)
+    },data.table(pair_long_pnl),data.table(pair_short_pnl))
+  ),
+  beta=structure(
+    hdr=tbl(c("beta"),align="@{}l@{}"),
+    mapply(function(x,y){
+      if(sd(y)<1e-10)return(0)
+      beta<-cov(x,y)/var(y)
+      round(beta,digits=2)
+    },x=data.table(pair_long_pnl),y=data.table(pair_short_pnl))
+  ),
+  beta_miss=structure(
+    hdr=tbl(c("vol","of","pair","|","vol","of","beta","hedge"),align="@{}l@{}"),
+    mapply(function(x,y){
+      if(sd(y)<1e-10)return(0)
+      pair_sd<-sd(x-y)
+      beta<-cov(x,y)/var(y)
+      optim_pair_sd<-sd(x-beta*y)
+      round(pair_sd/optim_pair_sd,digits=2)
+    },x=data.table(pair_long_pnl),y=data.table(pair_short_pnl))
+  )
+
 )
 @
 
@@ -198,8 +295,8 @@ pair_stats<-data.table(
   df=pair_stats,
   title="Detailed pair statistics",
   side_by_side_count=1,
-  lines_per_page_count=60,
-  fmt=list(align="l",add_rownames=TRUE)
+  lines_per_page_count=50,
+  fmt=list(align="l",halign="|l|",add_rownames=FALSE)
 )}
 \rowcolors{2}{white}{white}
 
@@ -211,11 +308,11 @@ row_slack <- 20
 \newpage
 <<, cache=FALSE, eval=TRUE, echo=FALSE, message=FALSE, warning=FALSE, results="hide">>=
 
-liquidity_vs_marginal_risk<-make_pair_layout(
+marginal_risk_vs_liquidity<-make_pair_layout(
     layout_matrix=df2matrix(
       df=data.table(
-        x=apply(abs(duke_pair_days),2,max),
-        y=sd(duke_local_pnl)-apply(duke_drop_one_pair_pnl,2,sd),
+        x=pair_stats$liquidity,
+        y=pair_stats$marginal_risk,
         text=images$name
       ),
       col_slack = col_slack,
@@ -223,19 +320,19 @@ liquidity_vs_marginal_risk<-make_pair_layout(
     ),
     xtext="Increasing ADV multiple",
     ytext="Increasing marginal contribution to DUKE risk",
-    title="DUKE: marginal risk contribution vs liquidity, all pairs"
+    title="DUKE: marginal risk contribution vs liquidity"
 )
 
 @
-\Sexpr{liquidity_vs_marginal_risk}
+\Sexpr{marginal_risk_vs_liquidity}
 
 \newpage
 <<, cache=FALSE, eval=TRUE, echo=FALSE, message=FALSE, warning=FALSE, results="hide">>=
-gross_vs_marginal_risk<-make_pair_layout(
+marginal_risk_vs_gross<-make_pair_layout(
     layout_matrix=df2matrix(
       data.table(
-        x=apply(abs(duke_pair_exposure),2,sum),
-        y=sd(duke_local_pnl)-apply(duke_drop_one_pair_pnl,2,sd),
+        x=pair_stats$gross,
+        y=pair_stats$marginal_risk,
         text=images$name
       ),
       col_slack = col_slack,
@@ -243,19 +340,19 @@ gross_vs_marginal_risk<-make_pair_layout(
     ),
     xtext="Increasing gross exposure",
     ytext="Increasing marginal contribution to DUKE risk",
-    title="DUKE: marginal risk contribution vs gross, all pairs"
+    title="DUKE: marginal risk contribution vs gross"
 )
 
 @
-\Sexpr{gross_vs_marginal_risk}
+\Sexpr{marginal_risk_vs_gross}
 
 \newpage
 <<, cache=FALSE, eval=TRUE, echo=FALSE, message=FALSE, warning=FALSE, results="hide">>=
-gross_vs_unit_marginal_risk<-make_pair_layout(
+unit_marginal_risk_vs_gross<-make_pair_layout(
     layout_matrix=df2matrix(
       data.table(
-        x=apply(abs(duke_pair_exposure),2,sum),
-        y=(sd(duke_local_pnl)-apply(duke_drop_one_pair_pnl,2,sd))/apply(abs(duke_pair_exposure),2,sum),
+        x=pair_stats$gross,
+        y=pair_stats$unit_marginal,
         text=images$name
       ),
       col_slack = col_slack,
@@ -263,24 +360,19 @@ gross_vs_unit_marginal_risk<-make_pair_layout(
     ),
     xtext="Increasing gross exposure",
     ytext="Increasing unit marginal contribution to DUKE risk",
-    title="DUKE: unit marginal risk contribution vs gross, all pairs"
+    title="DUKE: unit marginal risk contribution vs gross"
 )
 
 @
-\Sexpr{gross_vs_unit_marginal_risk}
+\Sexpr{unit_marginal_risk_vs_gross}
 
 \newpage
 <<, cache=FALSE, eval=TRUE, echo=FALSE, message=FALSE, warning=FALSE, results="hide">>=
-x0<-mapply(function(x,y){
-  if(sd(x)<1e-10)return(0)
-  if(sd(y)<1e-10)return(0)
-  cor(x,y)
-},data.table(duke_pair_long_pnl),data.table(duke_pair_short_pnl))
-long_short_correlation_vs_unit_marginal_risk<-make_pair_layout(
+unit_marginal_risk_vs_long_short_correlation<-make_pair_layout(
     layout_matrix=df2matrix(
       data.table(
-        x=x0,
-        y=(sd(duke_local_pnl)-apply(duke_drop_one_pair_pnl,2,sd))/apply(abs(duke_pair_exposure),2,sum),
+        x=pair_stats$corr,
+        y=pair_stats$unit_marginal,
         text=images$name
       ),
       col_slack = col_slack,
@@ -288,50 +380,37 @@ long_short_correlation_vs_unit_marginal_risk<-make_pair_layout(
     ),
     xtext="Increasing correlation of longs with shorts",
     ytext="Increasing unit marginal contribution to DUKE risk",
-    title="DUKE: unit marginal risk contribution vs long/short correlation, all pairs"
+    title="DUKE: unit marginal risk contribution vs long/short correlation"
 )
 @
-\Sexpr{long_short_correlation_vs_unit_marginal_risk}
+\Sexpr{unit_marginal_risk_vs_long_short_correlation}
 
 \newpage
 <<, cache=FALSE, eval=TRUE, echo=FALSE, message=FALSE, warning=FALSE, results="hide">>=
-x0<-(-1)*mapply(function(x,y){
-  pair_sd<-sd(x+y)
-  long_sd<-sd(x)
-  short_sd<-sd(y)
-  pair_sd/(long_sd+short_sd)
-},data.table(duke_pair_long_pnl),data.table(duke_pair_short_pnl))
-diversification_vs_unit_marginal_risk<-make_pair_layout(
+unit_marginal_risk_vs_diversification<-make_pair_layout(
     layout_matrix=df2matrix(
       data.table(
-        x=x0,
-        y=(sd(duke_local_pnl)-apply(duke_drop_one_pair_pnl,2,sd))/apply(abs(duke_pair_exposure),2,sum),
+        x=(-1)*pair_stats$vol,
+        y=pair_stats$unit_marginal,
         text=images$name
       ),
       col_slack = col_slack,
       row_slack = row_slack
     ),
-    xtext="Increasing diversification benefit",
+    xtext="Increasing diversification benefit (pair vol reduction relative to constituents)",
     ytext="Increasing unit marginal contribution to DUKE risk",
-    title="DUKE: unit marginal risk contribution vs diversification benefit, all pairs"
+    title="DUKE: unit marginal risk contribution vs diversification benefit"
 )
 @
-\Sexpr{diversification_vs_unit_marginal_risk}
+\Sexpr{unit_marginal_risk_vs_diversification}
 
 \newpage
 <<, cache=FALSE, eval=TRUE, echo=FALSE, message=FALSE, warning=FALSE, results="hide">>=
-maxdd<-function(x)max(cummax(cumsum(x))-cumsum(x))
-x0<-(-1)*mapply(function(x,y){
-  pair_dd<-maxdd(x+y)
-  long_dd<-maxdd(x)
-  short_dd<-maxdd(y)
-  pair_dd/(long_dd+short_dd)
-},data.table(duke_pair_long_pnl),data.table(duke_pair_short_pnl))
-diversification_vs_unit_marginal_risk<-make_pair_layout(
+unit_marginal_risk_vs_drawdown_reduction<-make_pair_layout(
     layout_matrix=df2matrix(
       data.table(
-        x=x0,
-        y=(sd(duke_local_pnl)-apply(duke_drop_one_pair_pnl,2,sd))/apply(abs(duke_pair_exposure),2,sum),
+        x=(-1)*pair_stats$maxdd,
+        y=pair_stats$unit_marginal,
         text=images$name
       ),
       col_slack = col_slack,
@@ -339,10 +418,30 @@ diversification_vs_unit_marginal_risk<-make_pair_layout(
     ),
     xtext="Increasing drawdown reduction",
     ytext="Increasing unit marginal contribution to DUKE risk",
-    title="DUKE: unit marginal risk contribution vs drawdown reduction, all pairs"
+    title="DUKE: unit marginal risk contribution vs drawdown reduction"
 )
 @
-\Sexpr{diversification_vs_unit_marginal_risk}
+\Sexpr{unit_marginal_risk_vs_drawdown_reduction}
+
+
+\newpage
+<<, cache=FALSE, eval=TRUE, echo=FALSE, message=FALSE, warning=FALSE, results="hide">>=
+unit_marginal_risk_vs_hedge_optimality<-make_pair_layout(
+    layout_matrix=df2matrix(
+      data.table(
+        x=pair_stats$beta_miss,
+        y=pair_stats$unit_marginal,
+        text=images$name
+      ),
+      col_slack = col_slack,
+      row_slack = row_slack
+    ),
+    xtext="Volatility increase because of sub-optimal hedge ratio",
+    ytext="Increasing unit marginal contribution to DUKE risk",
+    title="DUKE: unit marginal risk contribution vs hedge ratio optimality"
+)
+@
+\Sexpr{unit_marginal_risk_vs_hedge_optimality}
 
 
 \newpage
@@ -350,17 +449,17 @@ diversification_vs_unit_marginal_risk<-make_pair_layout(
 
 pair_stat_matrix<-mapply(
   make_matrix_from_args,
-  gross_txt=rep("{\\small gross}",ncol(duke_pair_exposure)),
+  gross_txt=rep("{\\small gross}",ncol(pair_exposure)),
   gross=pair_stats$gross,
-  marginal_risk_txt=rep("{\\small mrisk}",ncol(duke_pair_exposure)),
+  marginal_risk_txt=rep("{\\small mrisk}",ncol(pair_exposure)),
   marginal_risk=pair_stats$marginal_risk,
-  unit_marginal_risk_txt=rep("{\\small umrisk}",ncol(duke_pair_exposure)),
+  unit_marginal_risk_txt=rep("{\\small umrisk}",ncol(pair_exposure)),
   unit_marginal=pair_stats$unit_marginal,
-  liquidity_txt=rep("{\\small adv}",ncol(duke_pair_exposure)),
+  liquidity_txt=rep("{\\small adv}",ncol(pair_exposure)),
   liquidity=pair_stats$liquidity,
-  cor_txt=rep("{\\small cor}",ncol(duke_pair_exposure)),
+  cor_txt=rep("{\\small cor}",ncol(pair_exposure)),
   corr=pair_stats$corr,
-  vol_txt=rep("{\\small vol}",ncol(duke_pair_exposure)),
+  vol_txt=rep("{\\small vol}",ncol(pair_exposure)),
   vol=pair_stats$vol,
   MoreArgs = list(template_matrix=rbind(c(1,2,3,4),c(5,6,7,8),c(9,10,11,12))),
   SIMPLIFY=FALSE
@@ -381,7 +480,7 @@ latex_pair_stat_matrix<-mapply(function(m){
 },pair_stat_matrix)
 
 detailed_report<-data.table(
-  pair=icon(icon_name=colnames(duke_pair_exposure),width="20mm",height="20mm"),
+  pair=icon(icon_name=colnames(pair_exposure),width="20mm",height="20mm"),
   details=latex_pair_stat_matrix
 )
 detailed_report_title<-"{\\bf Pair detail}"

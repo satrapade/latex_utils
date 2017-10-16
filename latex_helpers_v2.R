@@ -70,7 +70,7 @@ data.frame_format<-function(x){
       }
       res
     },names(x)[i],MoreArgs=list(x=x),SIMPLIFY=FALSE)
-    x[names(fx)]<-fx
+    for(j in names(fx))x[[j]]<-fx[[j]]
   }
   x
 }

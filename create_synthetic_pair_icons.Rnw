@@ -33,97 +33,83 @@ source("utility_functions.R")
 source("sheet_utility_functions.R")
 source("latex_helpers_v2.R")
 
-set.seed(0)
 
-managers<-sort(mapply(function(i)stri_flatten(sample(LETTERS,sample(c(2,3),1))),1:10))
-pairs<-sort(paste0(sample(managers,100,replace=TRUE),sample(1:1000,100)))
-stocks<-paste0("STOCK",1:500)
+data_directory<-"actual_data"
+prefix<-""
+row_names<-TRUE
 
-manager_col<-assign_color(managers,col_alpha=1)
-fwrite(manager_col,"manager_col.csv")
-pair_col<-assign_color(pairs,col_alpha=1)
-fwrite(pair_col,"pair_col.csv")
+# pair-level data
+pair_exposure     <- load_matrix(paste0(data_directory,"/",prefix,"pair_exposure.csv"),row_names=row_names)
+pair_days         <- load_matrix(paste0(data_directory,"/",prefix,"pair_days.csv"),row_names=row_names)
+pair_local_pnl    <- load_matrix(paste0(data_directory,"/",prefix,"pair_local_pnl.csv"),row_names=row_names)
+pair_long_pnl     <- load_matrix(paste0(data_directory,"/",prefix,"pair_long_pnl.csv"),row_names=row_names)
+pair_short_pnl    <- load_matrix(paste0(data_directory,"/",prefix,"pair_short_pnl.csv"),row_names=row_names)
+drop_one_pair_pnl <- load_matrix(paste0(data_directory,"/",prefix,"drop_one_pair_pnl.csv"),row_names=row_names)
 
-history_days<-1000
-tret<-(matrix(
-  rnorm(length(stocks)*history_days,sd=0.01,mean=0),
-  ncol=length(stocks),
-  dimnames=list(1:history_days,stocks)
-)+
-cbind(rnorm(history_days,sd=0.01),rep(0,history_days))[,sample(c(1,rep(2,1)),length(stocks),replace=TRUE)]+ # 50% with a low vol common factor
-cbind(rnorm(history_days,sd=0.02),rep(0,history_days))[,sample(c(1,rep(2,10)),length(stocks),replace=TRUE)]+ # 5% with a medium vol common factor
-cbind(rnorm(history_days,sd=0.04),rep(0,history_days))[,sample(c(1,rep(2,100)),length(stocks),replace=TRUE)] # 0.5% with a high vol common factor
-)*matrix(rep(rep(c(0,1),times=c(2,5)),length.out=1000),ncol=1)[,rep(1,length(stocks))] # weekends 
- 
-adv<-matrix(
-  sample(1:100,length(stocks),replace=TRUE),
-  nrow=length(stocks),
-  ncol=1,
-  dimnames=list(stocks,NULL)
-)
+# manager-level data
+manager_exposure     <- load_matrix(paste0(data_directory,"/",prefix,"manager_exposure.csv"),row_names=row_names)
+manager_local_pnl    <- load_matrix(paste0(data_directory,"/",prefix,"manager_local_pnl.csv"),row_names=row_names)
+drop_one_manager_pnl <- load_matrix(paste0(data_directory,"/",prefix,"drop_one_manager_pnl.csv"),row_names=row_names)
 
-duke_pair_exposure<-mapply(function(i){
-  selected_stocks<-(seq_along(stocks) %in% sample(seq_along(stocks),sample(1:5,1)))
-  stock_direction<-sample(c(-1,1),length(stocks),replace=TRUE)
-  structure(selected_stocks*stock_direction,.Names=stocks)
-},pairs)
+# fund-level data
+exposure        <- load_matrix(paste0(data_directory,"/",prefix,"exposure.csv"),row_names=row_names)
+long_exposure   <- load_matrix(paste0(data_directory,"/",prefix,"long_exposure.csv"),row_names=row_names)
+short_exposure  <- load_matrix(paste0(data_directory,"/",prefix,"short_exposure.csv"),row_names=row_names)
+local_pnl       <- load_matrix(paste0(data_directory,"/",prefix,"local_pnl.csv"),row_names=row_names)
 
+# color assigment
+manager_col <- fread(paste0(data_directory,"/",prefix,"manager_col.csv"))
+pair_col    <- fread(paste0(data_directory,"/",prefix,"pair_col.csv"))
+
+# data_directory<-"synthetic_data"
+# 
+# # pair-level data
+# pair_exposure     <- as.matrix(fread(paste0(data_directory,"/","pair_exposure.csv")))
+# pair_days         <- as.matrix(fread(paste0(data_directory,"/","pair_days.csv")))
+# pair_local_pnl    <- as.matrix(fread(paste0(data_directory,"/","pair_local_pnl.csv")))
+# pair_long_pnl     <- as.matrix(fread(paste0(data_directory,"/","pair_long_pnl.csv")))
+# pair_short_pnl    <- as.matrix(fread(paste0(data_directory,"/","pair_short_pnl.csv")))
+# drop_one_pair_pnl <- as.matrix(fread(paste0(data_directory,"/","drop_one_pair_pnl.csv")))
+# 
+# # manager-level data
+# manager_exposure     <- as.matrix(fread(paste0(data_directory,"/","manager_exposure.csv")))
+# manager_local_pnl    <- as.matrix(fread(paste0(data_directory,"/","manager_local_pnl.csv")))
+# drop_one_manager_pnl <- as.matrix(fread(paste0(data_directory,"/","drop_one_manager_pnl.csv")))
+# 
+# # fund-level data
+# exposure        <- as.matrix(fread(paste0(data_directory,"/","exposure.csv")))
+# long_exposure   <- as.matrix(fread(paste0(data_directory,"/","long_exposure.csv")))
+# short_exposure  <- as.matrix(fread(paste0(data_directory,"/","short_exposure.csv")))
+# local_pnl       <- as.matrix(fread(paste0(data_directory,"/","local_pnl.csv")))
+# 
+# # color assigment
+# manager_col <- fread(paste0(data_directory,"/",prefix,"manager_col.csv"))
+# pair_col    <- fread(paste0(data_directory,"/",prefix,"pair_col.csv"))
+
+
+#determine pairs, managers and pair-to-manager mapping
+pairs<-sort(unique(colnames(pair_exposure)))
+managers<-sort(unique(colnames(manager_exposure)))
 manager_pairs<-structure(
   diag(length(managers))[match(gsub("[0-9]+","",pairs),managers),],
   dimnames=list(pairs,managers)
 )
 
-duke_manager_exposure<-duke_pair_exposure%*%manager_pairs
-
-duke_pair_days<-duke_pair_exposure*adv[,rep(1,ncol(duke_pair_exposure))]
-
-duke_exposure<-duke_pair_exposure%*%matrix(1,ncol=1,nrow=length(pairs))
-duke_long_exposure<-pmax(duke_exposure,0)
-duke_short_exposure<-pmax(-duke_exposure,0)
-duke_local_pnl<-tret%*%duke_exposure
-duke_pair_local_pnl<-tret%*%duke_pair_exposure
-duke_pair_long_pnl<-tret%*%pmax(duke_pair_exposure,0)
-duke_pair_short_pnl<-tret%*%pmax(-duke_pair_exposure,0)
-duke_manager_local_pnl<-tret%*%duke_manager_exposure
-duke_drop_one_manager_pnl<-structure(
-  duke_manager_local_pnl%*%(1-diag(length(managers))),
-  dimnames=dimnames(duke_manager_local_pnl)
-)
-duke_drop_one_pair_pnl<-structure(
-  duke_pair_local_pnl%*%(1-diag(length(pairs))),
-   dimnames=dimnames(duke_pair_local_pnl)
-)
-
-fwrite(data.table(duke_pair_days),"duke_pair_days.csv")
-fwrite(data.table(duke_pair_exposure),"duke_pair_exposure.csv")
-fwrite(data.table(duke_manager_exposure),"duke_manager_exposure.csv")
-fwrite(data.table(duke_exposure),"duke_exposure.csv")
-fwrite(data.table(duke_long_exposure),"duke_long_exposure.csv")
-fwrite(data.table(duke_short_exposure),"duke_short_exposure.csv")
-fwrite(data.table(duke_local_pnl),"duke_local_pnl.csv")
-fwrite(data.table(duke_pair_local_pnl),"duke_pair_local_pnl.csv")
-fwrite(data.table(duke_pair_long_pnl),"duke_pair_long_pnl.csv")
-fwrite(data.table(duke_pair_short_pnl),"duke_pair_short_pnl.csv")
-fwrite(data.table(duke_manager_local_pnl),"duke_manager_local_pnl.csv")
-fwrite(data.table(duke_drop_one_manager_pnl),"duke_drop_one_manager_pnl.csv")
-fwrite(data.table(duke_drop_one_pair_pnl),"duke_drop_one_pair_pnl.csv")
-
-pm_color_code_key<-paste0(
-  "\\colorbox{",sort(unique(pair2pm(colnames(duke_pair_days)))),"!20}{",
-  sort(unique(pair2pm(colnames(duke_pair_days)))),
-  "}",
-  collapse=","
-)
-
+pm_color_code_key<-paste0("\\colorbox{",managers,"!20}{",managers,"}",collapse=",")
 
 #
 # pair icon elements
 #
 
 # tickers in long/short leg
-pair_leg<-function(pair,exposure=duke_pair_exposure,direction=1,max_char=12){
-  i<-which(direction*exposure[,pair]>0)
-  s1<-rownames(exposure)[i]
+pair_leg<-function(
+  pair,
+  pair_exposure,
+  direction=1,
+  max_char=12
+){
+  i<-which(direction*pair_exposure[,pair]>0)
+  s1<-rownames(pair_exposure)[i]
   s2<-gsub("( [A-Z]{2} Equity$)|( Index$)","",s1)
   s3<-paste0(s2,collapse="-")
   if(nchar(s3)>max_char){
@@ -141,11 +127,11 @@ pair_with_pm_color<-function(pair)paste0("\\cellcolor{",pair2pm(pair),"!33}",pai
 pair_sparkline<-function(
   pair,
   w=365,
-  pair_long_pnl=duke_pair_long_pnl,
-  pair_short_pnl=duke_pair_short_pnl
+  pair_long_pnl=pair_long_pnl,
+  pair_short_pnl=pair_short_pnl
 ){
-  long_pnl<-duke_pair_long_pnl[,pair]
-  short_pnl<-duke_pair_short_pnl[,pair]
+  long_pnl<-pair_long_pnl[,pair]
+  short_pnl<-pair_short_pnl[,pair]
   long_px<-cumprod(c(0,tail(long_pnl,w))+1)
   short_px<-cumprod(c(0,tail(short_pnl,w))+1)
   rel_px<-rescale(long_px/short_px)
@@ -158,13 +144,13 @@ pair_sparkline<-function(
 # recent pair price actions
 pair_price_action<-function(
   pair,
-  pair_local_pnl=duke_pair_local_pnl,
+  pair_pnl,
   w=21,
   height=2,
   width=30,
   units="mm"
 ){
-  pnl<-tail(pair_local_pnl[,pair],21)
+  pnl<-tail(pair_pnl[,pair],21)
   txt<-make_tikz_price_action(pnl,width=width,height=height,units=units)
   txt
 }
@@ -173,15 +159,15 @@ pair_price_action<-function(
 pair_technicals<-function(
   pair,
   w=365,
-  pair_long_pnl=duke_pair_long_pnl,
-  pair_short_pnl=duke_pair_short_pnl,
-  pair_days=duke_pair_days,
-  local_pnl=duke_local_pnl,
-  drop_one_pair_pnl=duke_drop_one_pair_pnl,
-  pair_exposure=duke_pair_exposure
+  pair_long_pnl=pair_long_pnl,
+  pair_short_pnl=pair_short_pnl,
+  pair_days=pair_days,
+  local_pnl=local_pnl,
+  drop_one_pair_pnl=drop_one_pair_pnl,
+  pair_exposure=pair_exposure
 ){
-  long_pnl<-duke_pair_long_pnl[,pair]
-  short_pnl<-duke_pair_short_pnl[,pair]
+  long_pnl<-pair_long_pnl[,pair]
+  short_pnl<-pair_short_pnl[,pair]
   long_px<-cumprod(c(0,long_pnl)+1)
   short_px<-cumprod(c(0,short_pnl)+1)
   
@@ -190,13 +176,13 @@ pair_technicals<-function(
   rsi_w<-function(w)min(round(tail(rsi(matrix(diff(rel_px),ncol=1),w),1),digits=0),99)
   
   days<-max(abs(pair_days[,pair]))
-  msd<-100*10000*(sd(local_pnl)-sd(drop_one_pair_pnl[,pair]))
+  msd<-round(100*10000*(sd(local_pnl)-sd(drop_one_pair_pnl[,pair])),digits=1)
   gross<-sum(abs(pair_exposure[,pair]))
   
   grid_text<-paste0(
     "\\begin{tabular}{@{}l@{\\hskip 1pt}l@{\\hskip 1pt}l@{}}",
     paste0("v",round(days,digits=1),collapse="")," & ",
-    paste0("r",abs(round(msd,digits=1)),collapse="")," & ",
+    paste0("r",ifelse(msd<0,paste0("(",msd,")"),paste0(msd)),collapse="")," & ",
     paste0("g",round(10000*gross,digits=0),collapse=""),"\\\\",
     paste0("{\\small\\sfrac{RSI}{3m}:",round(rsi_w(182),digits=1),collapse=""),"} & ",
     paste0("{\\small\\sfrac{RSI}{1m}:",round(rsi_w(90),digits=1),collapse=""),"} & ",
@@ -212,24 +198,54 @@ pair_technicals<-function(
   grid_text
 }
 
-pair_icon<-Vectorize(function(pair){
+pair_icon<-function(
+  pair,
+  pair_exposure,
+  pair_days,
+  pair_pnl,
+  pair_long_pnl,
+  pair_short_pnl,
+  drop_one_pair_pnl,
+  local_pnl
+){
   icon_items<-c(
-    paste0("\\multicolumn{1}{@{}c@{}}{",pair_with_pm_color(pair),"}"),
-    paste0("\\multicolumn{1}{@{}c@{}}{",pair_price_action(pair),"}"),
-    paste0("\\multicolumn{1}{@{}c@{}}{",pair_technicals(pair),"}"),
-    pair_leg(pair,direction=(1),exposure=duke_pair_exposure,max_char=12),
-    pair_leg(pair,direction=(-1),exposure=duke_pair_exposure,max_char=12)
+    paste0("\\multicolumn{1}{@{}c@{}}{",pair_with_pm_color(pair=pair),"}"),
+    paste0("\\multicolumn{1}{@{}c@{}}{",pair_price_action(pair=pair,pair_pnl=pair_pnl,w=21,height=2,width = 30,units="mm"),"}"),
+    paste0("\\multicolumn{1}{@{}c@{}}{",pair_technicals(
+      pair=pair,
+      w=365,
+      pair_exposure=pair_exposure,
+      pair_days=pair_days,
+      pair_long_pnl=pair_long_pnl,
+      pair_short_pnl=pair_short_pnl,
+      drop_one_pair_pnl=drop_one_pair_pnl,
+      local_pnl=local_pnl
+    ),"}"),
+    pair_leg(pair=pair,pair_exposure=pair_exposure,direction=(1),max_char=12),
+    pair_leg(pair=pair,pair_exposure=pair_exposure,direction=(-1),max_char=12)
   )
   tbl(x=icon_items,sep=" \\\\ \n",align="@{}p{3.0cm}@{}")
-})
+}
 
-all_icons<-mapply(make_external_latex,latex=mapply(pair_icon,pairs),file=pairs,SIMPLIFY=TRUE)
+latex_icons<-mapply(pair_icon,pair=pairs,MoreArgs=list(
+  pair_exposure=pair_exposure,
+  pair_days=pair_days,
+  pair_pnl=pair_local_pnl,
+  pair_long_pnl=pair_long_pnl,
+  pair_short_pnl=pair_short_pnl,
+  drop_one_pair_pnl=drop_one_pair_pnl,
+  local_pnl=local_pnl
+),SIMPLIFY = FALSE)
+
+external_latex_icons<-mapply(make_external_latex,latex=latex_icons,file=pairs,SIMPLIFY=TRUE)
 
 @
 
 \Sexpr{paste(manager_col$latex_col_def,collapse="")}
 
-\Sexpr{paste(all_icons,collapse="\n")}
+% pair icons wrapped inside a tikz picture for
+% capture and export
+\Sexpr{paste(external_latex_icons,collapse="\n")}
 
 \tikzsetnextfilename{ICONKEY}
 \tikz{\path (0,0) node[inner sep=0,outer sep=0]{
@@ -237,7 +253,7 @@ all_icons<-mapply(make_external_latex,latex=mapply(pair_icon,pairs),file=pairs,S
   \hline
   \multicolumn{2}{c}{\bf Table key} \\
   \hline
-  \Sexpr{pair_icon(pairs[1])} 
+  \Sexpr{latex_icons[[1]]} 
   &
   \begin{tabular}{l}
   Pair id, color-coded by PM : \Sexpr{pm_color_code_key} \\
