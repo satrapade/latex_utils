@@ -1,0 +1,86 @@
+\documentclass{article}
+
+\usepackage[portrait, headheight = 0cm, margin=0.25cm, top = 0.25cm, nofoot]{geometry} 
+\usepackage[export]{adjustbox} 
+\usepackage{graphicx}
+\usepackage[dvipsnames,table]{xcolor} % [dvipsnames,table] for setting colors \usepackage{amsmath} \usepackage{xfrac}
+\usepackage{tikz}
+\usetikzlibrary{shapes.geometric}
+\usetikzlibrary{shapes.misc}
+%\usetikzlibrary{external}
+%\tikzexternalize % activate!
+%\usepackage{sparklines}
+\usepackage{xfrac}
+
+\DeclareRobustCommand\Tstrut{\rule{0pt}{2.6ex}}         % = `top' strut
+\DeclareRobustCommand\Bstrut{\rule[-0.9ex]{0pt}{0pt}}   % = `bottom' strut
+\renewcommand{\familydefault}{\sfdefault}
+
+<<, cache=FALSE, eval=TRUE, echo=FALSE, message=FALSE, warning=FALSE, results="hide">>=
+require(Hmisc)
+require(Rtsne)
+require(digest)
+require(stringi)
+require(readxl)
+require(scales)
+require(data.table)
+require(Matrix)
+require(Matrix.utils)
+require(clue)
+require(magick)
+source("utility_functions.R")
+source("sheet_utility_functions.R")
+source("latex_helpers_v2.R")
+
+
+images<-fread("images.csv")
+icon<-function(pair,height="3cm",width="3cm"){
+  images[,.SD,keyby=name][pair,paste0("\\includegraphics[height=",height,",width=",width,",valign=T]{",file,"}")]
+}
+pair2manager<-function(p)gsub("[0-9]+$","",p)
+managers<-sort(unique(pair2manager(images$name)))
+
+pair_layout<-data.table(
+  x=round(runif(nrow(images),0,200),digits=0),
+  y=round(runif(nrow(images),0,200),digits=0),
+  text=images$name
+)
+
+pair_matrix<-df2matrix(pair_layout)
+
+
+@
+
+\begin{document}
+
+\begin{center}
+\begin{tabular}{c}
+\hline
+\rowcolor{gray!20}
+{\bf Pair layout using tikz} \\ \\
+\resizebox{20cm}{20cm}{\Sexpr{
+tikz_plot_matrix(
+  content=apply(
+    pair_matrix,
+    1:2,
+    function(e)ifelse(match(pair2manager(e),managers[1:5],nomatch=0)>0,icon(e,width="18mm",height="18mm"),"")
+  ),
+  node=apply(
+    pair_matrix,
+    1:2,
+    function(e)ifelse(match(pair2manager(e),managers[5],nomatch=0)>0 & runif(1)>0.5,
+    "draw,inner sep=1pt,outer sep=0pt,fill=red!20",
+    "draw,inner sep=1pt,outer sep=0pt"
+    )
+  )
+)}} \\
+\hline
+\end{tabular}
+\end{center}
+
+
+
+
+
+\end{document}
+

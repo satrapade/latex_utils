@@ -42,7 +42,7 @@ source("latex_helpers_v2.R")
 
 <<, cache=FALSE, eval=TRUE, echo=FALSE, message=FALSE, warning=FALSE, results="hide">>=
 
-data_directory<-"actual_data"
+data_directory<-"synthetic_data"
 prefix<-""
 row_names<-TRUE
 
@@ -84,73 +84,68 @@ pm_color_code_key<-paste0(
   collapse=","
 )
 
-keys<-fread(paste0(data_directory,"/","keys.csv"))
-images<-fread(paste0(data_directory,"/","images.csv"))
-
-icon<-function(icon_name,icon_table=images){
-  icon_table[,.SD,keyby=name][icon_name,paste0("\\includegraphics{",file,"}")]
+keys<-fread("keys.csv")
+images<-fread("images.csv")
+icon<-function(icon_name,height="3cm",width="3cm",icon_table=images){
+  icon_table[,.SD,keyby=name][icon_name,paste0(
+    paste0("\\begin{minipage}[t]{",width,"}"),
+    "\\includegraphics[height=",height,",width=",width,",valign=T]{",file,"}",
+    "\\end{minipage}"
+    )]
 }
 
-icon_name<-function(icon_name,icon_table=images){
-  paste0("{\\setlength{\\fboxsep}{0pt}\\colorbox{",pair2pm(icon_name),"!20}{",icon_name,"}}")
-}
-
-icon_number<-function(icon_name,icon_table=images){
-  number<-gsub("^[A-Z]+","",icon_name)
-  number_chars<-c(rep("\\phantom{0}",3),sapply(1:nchar(number),function(i)stri_sub(number,i,i)))
-  latex_number<-stri_flatten(tail(number_chars,3))
-  paste0("{\\setlength{\\fboxsep}{0pt}\\colorbox{",pair2pm(icon_name),"!20}{\\tt",latex_number,"}}")
-}
 
 
 make_pair_layout<-function(
   layout_matrix,
   xtext="Increasing ADV multiple",
   ytext="Increasing marginal contribution to DUKE risk",
-  title="DUKE: marginal risk contribution vs liquidity, all pairs",
-  keytext=paste0("\\resizebox{10cm}{2cm}{",icon(icon_name="ICONKEY",icon_table=keys),"}"),
-  content_fun=function(e)ifelse(
-    match(pair2pm(e),managers,nomatch=0)>0,
-    icon(icon_name=e),
-    ""
-  ),
-  format_fun=constant("draw,inner sep=0pt,outer sep=0pt"),
-  xscale=c(0,180),
-  yscale=c(0,180),
-  units="mm",
-  content_size_factor=0.9
+  title="DUKE: marginal risk contribution vs liquidity, all pairs"
 ){
   
   res<-paste0(
-    "\\begin{center}\n",
-    "\\setlength{\\tabcolsep}{1pt}\n",
-    "\\begin{tabular}{m{0.5cm} m{20cm}}\n",
-    "\\hline\n",
-    "\\rowcolor{gray!20}\n",
-    "\\multicolumn{2}{c}{\\bf ",title,"} \\\\ \\\\\n",
-    "\\rotatebox[origin=c]{90}{",ytext,"\\tikz[baseline=-0.5ex]{\\draw[line width=1pt, ->] (0, 0)--(2cm,0);}}\n",
-    " &\n",
+    "\\begin{center}",
+    "\\setlength{\\tabcolsep}{1pt}",
+    "\\begin{tabular}{m{0.5cm} m{20cm}}",
+    "\\hline",
+    "\\rowcolor{gray!20}",
+    "\\multicolumn{2}{c}{\\bf ",title,"} \\\\ \\\\",
+    "\\rotatebox[origin=c]{90}{",ytext,"\\tikz[baseline=-0.5ex]{\\draw[line width=1pt, ->] (0, 0)--(2cm,0);}} ",
+    " & ",
+    #"\\resizebox{20cm}{20cm}{",
     tikz_plot_matrix(
-      content=apply(layout_matrix,1:2,content_fun),
-      node=apply(layout_matrix,1:2,format_fun),
-      xscale=xscale,
-      yscale=yscale,
-      units=units,
-      content_size_factor=content_size_factor
+      content=apply(
+        layout_matrix,
+        1:2,
+        function(e)ifelse( # some kind of selection can go here
+          match(pair2pm(e),managers,nomatch=0)>0,
+          icon(icon_name=e,width=paste0(floor(178/ncol(layout_matrix)),"mm"),height=paste0(floor(178/nrow(layout_matrix)),"mm")),
+          ""
+        )
+      ),
+      node=apply(
+        layout_matrix,
+        1:2,
+        function(e)ifelse( # or conditional formatting
+          match(pair2pm(e),managers[5],nomatch=0)>0 & FALSE,
+          "draw,inner sep=1pt,outer sep=0pt,fill=red!20",
+          "draw,inner sep=1pt,outer sep=0pt"
+        )
+      ),
+      xscale=c(0,180),
+      yscale=c(0,180),
+      units="mm"
     ),
-    "\n",
-    "\\\\\n",
-    "&\n", 
-    "\\multicolumn{1}{c}{\\Tstrut ",
-    xtext,
-    " \\tikz[baseline=-0.5ex]{\\draw[line width=1pt, ->] (0, 0)--(2cm,0);}} \\\\\n",
-    "\\end{tabular}\n",
-    "\\end{center}\n",
-    "\\vskip 1cm\n",
-    "\\begin{center}\n",
-    keytext,
-    "\n",
-    "\\end{center}\n"
+    #"}",
+    "\\\\",
+    "&", 
+    "\\multicolumn{1}{c}{\\Tstrut ",xtext," \\tikz[baseline=-0.5ex]{\\draw[line width=1pt, ->] (0, 0)--(2cm,0);}} \\\\",
+    "\\end{tabular}",
+    "\\end{center}",
+    "\\vskip 1cm",
+    "\\begin{center}",
+    icon(icon_name="ICONKEY",width="10cm",height="2cm",icon_table=keys),
+    "\\end{center}"
   )
   res
 }
@@ -307,57 +302,30 @@ pair_stats<-data.table(
 \rowcolors{2}{white}{white}
 
 <<, cache=FALSE, eval=TRUE, echo=FALSE, message=FALSE, warning=FALSE, results="hide">>=
-col_slack <- 2*floor(sqrt(nrow(pair_stats)))
-row_slack <- 2*floor(sqrt(nrow(pair_stats)))
+col_slack <- 20
+row_slack <- 20
 @
 
 \newpage
 <<, cache=FALSE, eval=TRUE, echo=FALSE, message=FALSE, warning=FALSE, results="hide">>=
-m<-df2matrix(
-  df=data.table(
-    x=pair_stats$liquidity,
-    y=pair_stats$marginal_risk,
-    text=images$name
-  ),col_slack = 1,row_slack = 1
-)
-marginal_risk_vs_liquidity_close_up<-make_pair_layout(
-    layout_matrix=m,
-    xtext="Increasing ADV multiple",
-    ytext="Increasing marginal contribution to DUKE risk",
-    title="DUKE: marginal risk contribution vs liquidity, `close-up' view"
-)
 
-@
-\Sexpr{marginal_risk_vs_liquidity_close_up}
-
-\newpage
-<<, cache=FALSE, eval=TRUE, echo=FALSE, message=FALSE, warning=FALSE, results="hide">>=
-m<-df2matrix(
+marginal_risk_vs_liquidity<-make_pair_layout(
+    layout_matrix=df2matrix(
       df=data.table(
         x=pair_stats$liquidity,
         y=pair_stats$marginal_risk,
-        text=pair_stats$pair
+        text=images$name
       ),
       col_slack = col_slack,
       row_slack = row_slack
-)
-marginal_risk_vs_liquidity_big_picture<-make_pair_layout(
-    layout_matrix=m,
+    ),
     xtext="Increasing ADV multiple",
     ytext="Increasing marginal contribution to DUKE risk",
-    keytext=paste0("\\resizebox{10cm}{2cm}{",pm_color_code_key,"}"),
-    title="DUKE: marginal risk contribution vs liquidity, `big picture' view",
-    content_fun=function(e)ifelse(
-      match(pair2pm(e),managers,nomatch=0)>0,
-      icon_number(icon_name=e),
-      ""
-    ),
-    format_fun=constant("draw,line width=0pt,inner sep=1pt,outer sep=0pt"),
-    content_size_factor=0.8
+    title="DUKE: marginal risk contribution vs liquidity"
 )
 
 @
-\Sexpr{marginal_risk_vs_liquidity_big_picture}
+\Sexpr{marginal_risk_vs_liquidity}
 
 \newpage
 <<, cache=FALSE, eval=TRUE, echo=FALSE, message=FALSE, warning=FALSE, results="hide">>=
@@ -373,7 +341,7 @@ marginal_risk_vs_gross<-make_pair_layout(
     ),
     xtext="Increasing gross exposure",
     ytext="Increasing marginal contribution to DUKE risk",
-    title="DUKE: marginal risk contribution vs gross, `big picture' view"
+    title="DUKE: marginal risk contribution vs gross"
 )
 
 @
@@ -393,7 +361,7 @@ unit_marginal_risk_vs_gross<-make_pair_layout(
     ),
     xtext="Increasing gross exposure",
     ytext="Increasing unit marginal contribution to DUKE risk",
-    title="DUKE: unit marginal risk contribution vs gross, `big picture' view"
+    title="DUKE: unit marginal risk contribution vs gross"
 )
 
 @
@@ -413,7 +381,7 @@ unit_marginal_risk_vs_long_short_correlation<-make_pair_layout(
     ),
     xtext="Increasing correlation of longs with shorts",
     ytext="Increasing unit marginal contribution to DUKE risk",
-    title="DUKE: unit marginal risk contribution vs long/short correlation, `big picture' view"
+    title="DUKE: unit marginal risk contribution vs long/short correlation"
 )
 @
 \Sexpr{unit_marginal_risk_vs_long_short_correlation}
@@ -432,7 +400,7 @@ unit_marginal_risk_vs_diversification<-make_pair_layout(
     ),
     xtext="Increasing diversification benefit (pair vol reduction relative to constituents)",
     ytext="Increasing unit marginal contribution to DUKE risk",
-    title="DUKE: unit marginal risk contribution vs diversification benefit, `big picture' view"
+    title="DUKE: unit marginal risk contribution vs diversification benefit"
 )
 @
 \Sexpr{unit_marginal_risk_vs_diversification}
@@ -451,7 +419,7 @@ unit_marginal_risk_vs_drawdown_reduction<-make_pair_layout(
     ),
     xtext="Increasing drawdown reduction",
     ytext="Increasing unit marginal contribution to DUKE risk",
-    title="DUKE: unit marginal risk contribution vs drawdown reduction, `big picture' view"
+    title="DUKE: unit marginal risk contribution vs drawdown reduction"
 )
 @
 \Sexpr{unit_marginal_risk_vs_drawdown_reduction}
@@ -471,7 +439,7 @@ unit_marginal_risk_vs_hedge_optimality<-make_pair_layout(
     ),
     xtext="Volatility increase because of sub-optimal hedge ratio",
     ytext="Increasing unit marginal contribution to DUKE risk",
-    title="DUKE: unit marginal risk contribution vs hedge ratio optimality, `big picture' view"
+    title="DUKE: unit marginal risk contribution vs hedge ratio optimality"
 )
 @
 \Sexpr{unit_marginal_risk_vs_hedge_optimality}
@@ -513,7 +481,7 @@ latex_pair_stat_matrix<-mapply(function(m){
 },pair_stat_matrix)
 
 detailed_report<-data.table(
-  pair=paste0("\\resizebox{20mm}{20mm}{",icon(icon_name=colnames(pair_exposure)),"}"),
+  pair=icon(icon_name=colnames(pair_exposure),width="20mm",height="20mm"),
   details=latex_pair_stat_matrix
 )
 detailed_report_title<-"{\\bf Pair detail}"

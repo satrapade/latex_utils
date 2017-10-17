@@ -483,7 +483,7 @@ tikz_plot_nodes<-function(df,units="mm",node="draw,inner sep=1pt,outer sep=0pt")
                       stri_trim(format(df$y,scientific=FALSE)),units,
                       ")")
   nodes<-paste0(coordinates," ","node[",node,"]","{",df$text,"}",sep="")
-  path<-paste("\\path\n",paste0(nodes,collapse="\n"),"\n;")
+  path<-paste("\\path",paste0(nodes,collapse=" "),";")
   paste0("\\tikz{",path,"}\n")
 }
 
@@ -491,27 +491,15 @@ tikz_plot_nodes<-function(df,units="mm",node="draw,inner sep=1pt,outer sep=0pt")
 constant<-function(x)function(y)x
 tikz_plot_matrix<-function(
   content,
-  xscale=c(0,180),
-  yscale=c(0,180),
+  xscale=c(0,200),
+  yscale=c(0,200),
   units="mm",
-  node=apply(content,1:2,constant("draw,inner sep=0pt,outer sep=0pt")),
-  content_size_factor=0.9
+  node=apply(content,1:2,constant("draw,inner sep=1pt,outer sep=0pt"))
 ){
-  if(any(dim(content)!=dim(node)))return("dim(content)!=dim(node)")
-  x<-rescale(as.vector(col(content)),xscale)
-  y<-rescale(as.vector(row(content)),yscale)
-  xsize<-stri_trim(format(content_size_factor*max(diff(x)),scientific=FALSE))
-  ysize<-stri_trim(format(content_size_factor*max(diff(y)),scientific=FALSE))
-  content_vector<-stri_trim(as.vector(content))
-  scaled_content<-ifelse(nchar(content_vector)>0,paste0(
-    paste0("\\resizebox{",xsize,units,"}{",ysize,units,"}{",collapse=""),
-    content_vector,
-    "}"
-  ),"")
   df<-data.table(
-    x=x,
-    y=y,
-    text=scaled_content,
+    x=rescale(as.vector(col(content)),xscale),
+    y=rescale(as.vector(row(content)),yscale),
+    text=as.vector(content),
     node=as.vector(node)
   )[text!=""]
   tikz_plot_nodes(df,units=units,node=df$node)

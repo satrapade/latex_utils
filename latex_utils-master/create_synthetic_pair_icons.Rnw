@@ -10,23 +10,14 @@
 \usetikzlibrary{shapes.geometric}
 \usetikzlibrary{shapes.misc}
 \usetikzlibrary{external}
-<<, cache=FALSE, eval=TRUE, echo=FALSE, message=FALSE, warning=FALSE, results="hide">>=
-# setup externalization
-require(data.table)
-icon_job<-fread("icon_creation_job.csv")
- externalization_command<-""
-if(icon_job$externalization_flag=="ENABLE"){
-  externalization_command<-icon_job$externalization_command
-}
-@
-\Sexpr{externalization_command} % activate extrnalization
+\tikzexternalize[prefix=tikz-figures/] % activate!
 
 \renewcommand{\familydefault}{\sfdefault} % sans serif
 
 \begin{document}
 
 <<, cache=FALSE, eval=TRUE, echo=FALSE, message=FALSE, warning=FALSE, results="hide">>=
-
+PROJECT_DIRECTORY<-"H:/equity_one_pager/" # keep updated
 require(Hmisc)
 require(Rtsne)
 require(digest)
@@ -43,7 +34,7 @@ source("sheet_utility_functions.R")
 source("latex_helpers_v2.R")
 
 
-data_directory<-icon_job$data_directory
+data_directory<-"synthetic_data"
 prefix<-""
 row_names<-TRUE
 
@@ -69,6 +60,31 @@ local_pnl       <- load_matrix(paste0(data_directory,"/",prefix,"local_pnl.csv")
 # color assigment
 manager_col <- fread(paste0(data_directory,"/",prefix,"manager_col.csv"))
 pair_col    <- fread(paste0(data_directory,"/",prefix,"pair_col.csv"))
+
+# data_directory<-"synthetic_data"
+# 
+# # pair-level data
+# pair_exposure     <- as.matrix(fread(paste0(data_directory,"/","pair_exposure.csv")))
+# pair_days         <- as.matrix(fread(paste0(data_directory,"/","pair_days.csv")))
+# pair_local_pnl    <- as.matrix(fread(paste0(data_directory,"/","pair_local_pnl.csv")))
+# pair_long_pnl     <- as.matrix(fread(paste0(data_directory,"/","pair_long_pnl.csv")))
+# pair_short_pnl    <- as.matrix(fread(paste0(data_directory,"/","pair_short_pnl.csv")))
+# drop_one_pair_pnl <- as.matrix(fread(paste0(data_directory,"/","drop_one_pair_pnl.csv")))
+# 
+# # manager-level data
+# manager_exposure     <- as.matrix(fread(paste0(data_directory,"/","manager_exposure.csv")))
+# manager_local_pnl    <- as.matrix(fread(paste0(data_directory,"/","manager_local_pnl.csv")))
+# drop_one_manager_pnl <- as.matrix(fread(paste0(data_directory,"/","drop_one_manager_pnl.csv")))
+# 
+# # fund-level data
+# exposure        <- as.matrix(fread(paste0(data_directory,"/","exposure.csv")))
+# long_exposure   <- as.matrix(fread(paste0(data_directory,"/","long_exposure.csv")))
+# short_exposure  <- as.matrix(fread(paste0(data_directory,"/","short_exposure.csv")))
+# local_pnl       <- as.matrix(fread(paste0(data_directory,"/","local_pnl.csv")))
+# 
+# # color assigment
+# manager_col <- fread(paste0(data_directory,"/",prefix,"manager_col.csv"))
+# pair_col    <- fread(paste0(data_directory,"/",prefix,"pair_col.csv"))
 
 
 #determine pairs, managers and pair-to-manager mapping
