@@ -504,7 +504,7 @@ tikz_plot_matrix<-function(
   ysize<-stri_trim(format(content_size_factor*max(diff(y)),scientific=FALSE))
   content_vector<-stri_trim(as.vector(content))
   scaled_content<-ifelse(nchar(content_vector)>0,paste0(
-    paste0("\\resizebox{",xsize,units,"}{",ysize,units,"}{",collapse=""),
+    paste0("\\resizebox*{",xsize,units,"}{",ysize,units,"}{",collapse=""),
     content_vector,
     "}"
   ),"")

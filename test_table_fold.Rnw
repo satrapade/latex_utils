@@ -51,20 +51,47 @@ tkz1<-tikz_plot_matrix(content=m1,node="",content_size_factor=0.9)
 
 @
 
-\definecolor{ABC}{HTML}{FF0000}
-\definecolor{AC}{HTML}{FFDB00}
-\definecolor{DH}{HTML}{49FF00}
-\definecolor{GJ}{HTML}{00FF92}
-\definecolor{IB}{HTML}{0092FF}
-\definecolor{MC}{HTML}{4900FF}
-\definecolor{RW}{HTML}{FF00DB}
+\definecolor{FWY}{HTML}{FF0000}
+\definecolor{GJN}{HTML}{FF9900}
+\definecolor{KA}{HTML}{CCFF00}
+\definecolor{MRX}{HTML}{33FF00}
+\definecolor{PM}{HTML}{00FF66}
+\definecolor{QBE}{HTML}{00FFFF}
+\definecolor{QD}{HTML}{0066FF}
+\definecolor{RJ}{HTML}{3300FF}
+\definecolor{UX}{HTML}{CC00FF}
+\definecolor{WI}{HTML}{FF0099}
 
+\tikz{\path (0,0) node[draw,inner sep=1pt,outer sep=0pt]{
+\resizebox*{2cm}{2cm}{{\setlength{\fboxsep}{0pt}\colorbox{FWY!20}{FWY}}}};}
+\hskip 2mm
+\tikz{\path (0,0) node[draw,inner sep=1pt,outer sep=0pt]{
+\resizebox*{2cm}{2cm}{{\setlength{\fboxsep}{0pt}\colorbox{GJN!20}{GJN}}}};}
+\hskip 2mm
+\tikz{\path (0,0) node[draw,inner sep=1pt,outer sep=0pt]{
+\resizebox*{2cm}{2cm}{{\setlength{\fboxsep}{0pt}\colorbox{KA!20}{KA}}}};}
+\hskip 2mm
+\tikz{\path (0,0) node[draw,inner sep=1pt,outer sep=0pt]{
+\resizebox*{2cm}{2cm}{{\setlength{\fboxsep}{0pt}\colorbox{MRX!20}{MRX}}}};}
+\hskip 2mm
+\tikz{\path (0,0) node[draw,inner sep=1pt,outer sep=0pt]{
+\resizebox*{2cm}{2cm}{{\setlength{\fboxsep}{0pt}\colorbox{PM!20}{PM}}}};}
+\hskip 2mm
+\tikz{\path (0,0) node[draw,inner sep=1pt,outer sep=0pt]{
+\resizebox*{2cm}{2cm}{{\setlength{\fboxsep}{0pt}\colorbox{QBE!20}{QBE}}}};}
+\hskip 2mm
+\tikz{\path (0,0) node[draw,inner sep=1pt,outer sep=0pt]{
+\resizebox*{2cm}{2cm}{{\setlength{\fboxsep}{0pt}\colorbox{QD!20}{QD}}}};}
+\hskip 2mm
+\tikz{\path (0,0) node[draw,inner sep=1pt,outer sep=0pt]{
+\resizebox*{2cm}{2cm}{{\setlength{\fboxsep}{0pt}\colorbox{RJ!20}{RJ}}}};}
+\hskip 2mm
+\tikz{\path (0,0) node[draw,inner sep=1pt,outer sep=0pt]{
+\resizebox*{2cm}{2cm}{{\setlength{\fboxsep}{0pt}\colorbox{UX!20}{UX}}}};}
+\hskip 2mm
+\tikz{\path (0,0) node[draw,inner sep=1pt,outer sep=0pt]{
+\resizebox*{2cm}{2cm}{{\setlength{\fboxsep}{0pt}\colorbox{WI!20}{WI}}}};}
 
-
-\fbox{\resizebox{6mm}{7.714286mm}{ {\setlength{\fboxsep}{0pt}\colorbox{MC!20}{\bf\tiny MC114 }} }}
-\fbox{\resizebox{6mm}{7.714286mm}{\adjustbox{cframe=MC!20}{MC114}}}
-\fbox{\resizebox{6mm}{7.714286mm}{ \includegraphics{H:/latex_utils/actual_data/tikz-figures/AC95.pdf}}}
-\fbox{\resizebox{6mm}{7.714286mm}{{\bf\tiny MC114 }}}
 
 \end{document}
 

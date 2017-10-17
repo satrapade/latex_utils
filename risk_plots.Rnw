@@ -42,7 +42,7 @@ source("latex_helpers_v2.R")
 
 <<, cache=FALSE, eval=TRUE, echo=FALSE, message=FALSE, warning=FALSE, results="hide">>=
 
-data_directory<-"actual_data"
+data_directory<-"synthetic_data"
 prefix<-""
 row_names<-TRUE
 
@@ -78,10 +78,12 @@ manager_pairs<-structure(
 )
 
 pm_color_code_key<-paste0(
-  "\\colorbox{",sort(unique(pair2pm(colnames(pair_days)))),"!20}{",
+  "\\tikz{\\path (0,0) node[draw,inner sep=2pt,outer sep=0pt]{\n",
+  "\\resizebox*{2cm}{2cm}{{\\setlength{\\fboxsep}{0pt}\\colorbox{",sort(unique(pair2pm(colnames(pair_days)))),"!20}{",
   sort(unique(pair2pm(colnames(pair_days)))),
-  "}",
-  collapse=","
+  "}}}",
+  "};}",
+  collapse="\n\\hskip 5mm\n"
 )
 
 keys<-fread(paste0(data_directory,"/","keys.csv"))
@@ -307,8 +309,8 @@ pair_stats<-data.table(
 \rowcolors{2}{white}{white}
 
 <<, cache=FALSE, eval=TRUE, echo=FALSE, message=FALSE, warning=FALSE, results="hide">>=
-col_slack <- 2*floor(sqrt(nrow(pair_stats)))
-row_slack <- 2*floor(sqrt(nrow(pair_stats)))
+col_slack <- 0.75*floor(sqrt(nrow(pair_stats)))
+row_slack <- 0.75*floor(sqrt(nrow(pair_stats)))
 @
 
 \newpage
@@ -318,13 +320,15 @@ m<-df2matrix(
     x=pair_stats$liquidity,
     y=pair_stats$marginal_risk,
     text=images$name
-  ),col_slack = 1,row_slack = 1
+  ),col_slack = 0,row_slack = 0
 )
 marginal_risk_vs_liquidity_close_up<-make_pair_layout(
     layout_matrix=m,
     xtext="Increasing ADV multiple",
     ytext="Increasing marginal contribution to DUKE risk",
-    title="DUKE: marginal risk contribution vs liquidity, `close-up' view"
+    title="DUKE: marginal risk contribution vs liquidity, `close-up' view",
+    format_fun=constant("draw,inner sep=1pt,outer sep=0pt"),
+    content_size_factor=0.93
 )
 
 @
@@ -345,7 +349,7 @@ marginal_risk_vs_liquidity_big_picture<-make_pair_layout(
     layout_matrix=m,
     xtext="Increasing ADV multiple",
     ytext="Increasing marginal contribution to DUKE risk",
-    keytext=paste0("\\resizebox{10cm}{2cm}{",pm_color_code_key,"}"),
+    keytext=paste0("\\resizebox{14cm}{1.75cm}{",pm_color_code_key,"}"),
     title="DUKE: marginal risk contribution vs liquidity, `big picture' view",
     content_fun=function(e)ifelse(
       match(pair2pm(e),managers,nomatch=0)>0,
