@@ -3,16 +3,16 @@
 #
 
 .satrapade_functions_version="Version 1.00"
-library(RcppRoll)
-library(stringi)
-library(data.table)
-library(Matrix)
-library(Matrix.utils)
-library(scales)
+require(RcppRoll)
+require(stringi)
+require(data.table)
+require(Matrix)
+require(Matrix.utils)
+require(scales)
 options(stringsAsFactors=FALSE)
-library(R.cache)
-library(digest)
-library(timeDate)
+require(R.cache)
+require(digest)
+require(timeDate)
 
 
 # fast data dump/pump functions, using binary little-endian connections
@@ -25,6 +25,17 @@ fpump<-function(filename){
   unserialize(readBin(filename,"raw",file.info(filename)[["size"]]))
 }
 
+#
+load_matrix<-function(fn,row_names=TRUE){
+  x<-fread(fn)
+  if(!row_names)return(as.matrix(x))
+  m<-as.matrix(x[,-1])
+  rownames(m)<-x[[1]]
+  return(m)
+}
+
+
+
 make_date_range<-function(
   start="2017-06-01",
   end="2017-06-30"
@@ -34,8 +45,7 @@ make_date_range<-function(
   as.character(date_seq,format=fmt)
 }
 
-#
-#
+
 #
 nz<-function(x,tol=1e-12){
   if(all(abs(x)<tol))return(0)
@@ -44,15 +54,13 @@ nz<-function(x,tol=1e-12){
 stopifnot(nz(c(0,1,0))==1)
 
 #
-# > replace_zero_with_last(c(0,0,1,1,2,3,0,0,0,1,1,1,2,3,0,0,0))
-# [1] 1 1 1 1 2 3 3 3 3 1 1 1 2 3 3 3 3
-#
 replace_zero_with_last<-function(x,a=x!=0){
   if(all(abs(x)<1e-10))return(x)
   x[which(a)[c(1,1:sum(a))][cumsum(a)+1]]
 }
 stopifnot(all(replace_zero_with_last(c(0,0,1,2,3,0,0,4,5,6,0,0))==c(1,1,1,2,3,3,3,4,5,6,6,6)))
 
+#
 bin<-function(x,n=10)findInterval(x,quantile(x,seq(0,1,length.out=n+1)),rightmost.closed=TRUE)
 
 rec<-function(x)seq_along(x)-which(c(TRUE,tail(x,-1)>0))[cumsum(c(TRUE,tail(x,-1)>0))]
