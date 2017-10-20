@@ -291,8 +291,32 @@ fast_col_apply<-function(x,fun)structure(
 )
 
 
-
-
+# 
+plot2matrix<-function(
+  y,
+  x=seq_along(y),
+  col="red",
+  cex=0.25,
+  type="p",
+  width=50,
+  height=50
+){
+  fig <- image_graph(width=width, height=height, res = 96)
+  par(mai=c(0,0,0,0))
+  plot(
+    rescale(x),
+    rescale(y),
+    pch=19,
+    cex=cex,
+    col=col,
+    type=type,
+    axes=FALSE,main="",xlab="",ylab=""
+  )
+  dev.off()
+  as.matrix(as.raster(fig))
+}
+                       
+                       
 #
 # image
 #
