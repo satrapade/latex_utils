@@ -35,7 +35,7 @@ load_matrix<-function(fn,row_names=TRUE){
 }
 
 
-
+#
 make_date_range<-function(
   start="2017-06-01",
   end="2017-06-30"
@@ -44,7 +44,7 @@ make_date_range<-function(
   date_seq<-seq(from=as.Date(start,format=fmt),to=as.Date(end,format=fmt),by=1)
   as.character(date_seq,format=fmt)
 }
-
+stopifnot(all(make_date_range("2017-01-01","2017-01-03")==c("2017-01-01","2017-01-02","2017-01-03")))
 
 #
 nz<-function(x,tol=1e-12){
