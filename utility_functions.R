@@ -34,6 +34,13 @@ load_matrix<-function(fn,row_names=TRUE){
   return(m)
 }
 
+# dMcast makes ugly colnames
+rename_colnames<-function(x,pattern,replacement){
+  colnames(x)<-gsub(pattern,replacement,colnames(x))
+  x
+}
+
+
 
 #
 make_date_range<-function(
