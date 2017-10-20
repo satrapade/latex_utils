@@ -34,7 +34,14 @@ make_date_range<-function(
   as.character(date_seq,format=fmt)
 }
 
-
+#
+#
+#
+nz<-function(x,tol=1e-12){
+  if(all(abs(x)<tol))return(0)
+  x[abs(x)>tol]
+}
+stopifnot(nz(c(0,1,0))==1)
 
 #
 # > replace_zero_with_last(c(0,0,1,1,2,3,0,0,0,1,1,1,2,3,0,0,0))
@@ -275,12 +282,8 @@ fast_col_apply<-function(x,fun)structure(
   dimnames=dimnames(x)
 )
 
-nz<-structure(function(x,tol=1e-12){
-  if(all(abs(x)<tol))return(0)
-  x[abs(x)>tol]
-},location="helper_functions_insight.R")
 
-stopifnot(nz(c(0,1,0))==1)
+
 
 #
 # image
