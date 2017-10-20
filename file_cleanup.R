@@ -1,6 +1,7 @@
 #
 # remove intermediate files
 #
+#
 
 gz_files<-list.files(pattern="*.gz",recursive=TRUE)
 if(length(gz_files)>0)file.remove(gz_files)
