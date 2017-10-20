@@ -243,7 +243,7 @@ apply_row<-function(x,f){
 }
 
 #
-shift_matrix<-structure(function(m,n,filler=0){
+shift_matrix<-function(m,n,filler=0){
   if(n==0)return(m)
   if(n>0){
     sm<-rbind(
@@ -262,18 +262,18 @@ shift_matrix<-structure(function(m,n,filler=0){
     return(sm)
   }
   stop("invalid shift")
-},location="helper_functions_insight.R")
+}
 
 #
-matrix_indices<-structure(function(x)cbind(
+matrix_indices<-function(x)cbind(
   rep(1:nrow(x),times=ncol(x)),
   rep(1:ncol(x),each=nrow(x))
-),location="helper_functions_insight.R")
+)
 
-fast_col_apply<-structure(function(x,fun)structure(
+fast_col_apply<-function(x,fun)structure(
   apply(structure(as.matrix(x),dimnames=NULL),2,fun),
   dimnames=dimnames(x)
-),location="helper_functions_insight.R")
+)
 
 nz<-structure(function(x,tol=1e-12){
   if(all(abs(x)<tol))return(0)
@@ -282,7 +282,9 @@ nz<-structure(function(x,tol=1e-12){
 
 stopifnot(nz(c(0,1,0))==1)
 
-
+#
+# image
+#
 make_image<-function(code,size=256){
   fig <- image_graph(width=size, height=size, res = 96)
   par(mai=c(0,0,0,0))
