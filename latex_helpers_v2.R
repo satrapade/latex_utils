@@ -514,7 +514,11 @@ tikz_plot_matrix<-function(
     text=scaled_content,
     node=as.vector(node)
   )[text!=""]
-  tikz_plot_nodes(df,units=units,node=df$node)
+  paste0(
+    "\\resizebox*{",diff(range(xscale)),units,"}{",diff(range(yscale)),units,"}{",
+    tikz_plot_nodes(df,units=units,node=df$node),
+    "}"
+  )
 }
 
 
