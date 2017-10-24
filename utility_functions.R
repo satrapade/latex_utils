@@ -259,8 +259,8 @@ where<-function (name, env = parent.frame()) {
 #
 list2data.frame<-function(x){
   l2e<-expression({data.frame(
-    names=ls(),
-    values=mapply(get,ls(),MoreArgs=list(envir=environment())),
+    names=ls(sorted=FALSE),
+    values=mapply(get,ls(sorted=FALSE),MoreArgs=list(envir=environment())),
     stringsAsFactors=FALSE,
     row.names=NULL
   )})
