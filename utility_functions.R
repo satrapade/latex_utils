@@ -104,11 +104,13 @@ force2grid<-function(
 }
 
 safe_cor<-function(strat,factor){
+  if(any(is.na(c(strat,factor))))return(0)
   if(any(c(sd(strat),sd(factor))==0))return(0)
   cor(strat,factor)
 }
 
 safe_beta<-function(strat,factor){
+  if(any(is.na(c(strat,factor))))return(0)
   if(any(c(sd(strat),sd(factor))==0))return(0)
   cov(strat,factor)/var(factor)
 }
