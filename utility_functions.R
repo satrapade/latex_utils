@@ -103,6 +103,15 @@ force2grid<-function(
   )
 }
 
+safe_cor<-function(strat,factor){
+  if(any(c(sd(strat),sd(factor))==0))return(0)
+  cor(strat,factor)
+}
+
+safe_beta<-function(strat,factor){
+  if(any(c(sd(strat),sd(factor))==0))return(0)
+  cov(strat,factor)/var(factor)
+}
 
 vol_pa<-function(x,exclude_zero=(x!=0), holidays = holidayNYSE()) {
   if(is.null(names(x))) 
