@@ -74,6 +74,34 @@ rec<-function(x)seq_along(x)-which(c(TRUE,tail(x,-1)>0))[cumsum(c(TRUE,tail(x,-1
 meanrd<-function(x)mean(rec(cummax(cumsum(x))==cumsum(x)))
 maxrd<-function(x)max(rec(cummax(cumsum(x))==cumsum(x)))
 
+# map XY coordinates to fixed grid points
+# for plotting and table layouts
+force2grid<-function(
+  df,
+  col_count=ceiling(sqrt(nrow(df)))+col_slack,
+  row_count=ceiling(nrow(df)/col_count)+row_slack,
+  col_slack=1,
+  row_slack=1,
+  table_target=FALSE
+){
+  m<-matrix("",nrow=row_count,ncol=col_count)
+  gx<-as.vector(col(m))
+  gy<-as.vector(row(m))
+  dfx<-rescale(df$x,range(gx)) #bin(df$x,max(gx))
+  dfy<-rescale(df$y,range(gy)) #bin(df$y,max(gy))
+  mx<-matrix(dfx,ncol=1)[,rep(1,length(gx))]
+  my<-matrix(dfy,ncol=1)[,rep(1,length(gx))]
+  gridx<-matrix(gx,nrow=1)[rep(1,length(dfx)),]
+  gridy<-matrix(gy,nrow=1)[rep(1,length(dfy)),]
+  dx<-(mx-gridx)^2
+  dy<-(my-gridy)^2
+  d<-dx+dy
+  t2g <- solve_LSAP(d)
+  data.table(
+    x=gx[t2g],
+    y=gy[t2g]
+  )
+}
 
 
 vol_pa<-function(x,exclude_zero=(x!=0), holidays = holidayNYSE()) {
