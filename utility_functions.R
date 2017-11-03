@@ -372,7 +372,7 @@ plot2matrix<-function(
     axes=FALSE,main="",xlab="",ylab=""
   )
   dev.off()
-  as.matrix(as.raster(fig))
+  as.matrix(as.raster(tail(fig,1)))
 }
                        
                        
