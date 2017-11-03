@@ -355,6 +355,7 @@ plot2matrix<-function(
   col="red",
   cex=0.25,
   type="p",
+  lwd=1,
   width=50,
   height=50
 ){
@@ -365,6 +366,7 @@ plot2matrix<-function(
     rescale(y),
     pch=19,
     cex=cex,
+    lwd=lwd,
     col=col,
     type=type,
     axes=FALSE,main="",xlab="",ylab=""
