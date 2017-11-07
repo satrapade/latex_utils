@@ -89,10 +89,10 @@ force2grid<-function(
   gy<-as.vector(row(m))
   dfx<-rescale(df$x,range(gx)) #bin(df$x,max(gx))
   dfy<-rescale(df$y,range(gy)) #bin(df$y,max(gy))
-  mx<-matrix(dfx,ncol=1)[,rep(1,length(gx))]
-  my<-matrix(dfy,ncol=1)[,rep(1,length(gx))]
-  gridx<-matrix(gx,nrow=1)[rep(1,length(dfx)),]
-  gridy<-matrix(gy,nrow=1)[rep(1,length(dfy)),]
+  mx<-matrix(dfx,ncol=1)[,rep(1,length(gx)),drop=FALSE]
+  my<-matrix(dfy,ncol=1)[,rep(1,length(gx)),drop=FALSE]
+  gridx<-matrix(gx,nrow=1)[rep(1,length(dfx)),,drop=FALSE]
+  gridy<-matrix(gy,nrow=1)[rep(1,length(dfy)),,drop=FALSE]
   dx<-(mx-gridx)^2
   dy<-(my-gridy)^2
   d<-dx+dy
