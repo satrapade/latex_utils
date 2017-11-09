@@ -117,6 +117,27 @@ safe_beta<-function(strat,factor){
   cov(strat,factor)/var(factor)
 }
 
+# fast exponential moving average
+calc_ama<-function(x,n){
+  x0<-c(sum(x[1:n]),x[(n+1):length(x)])/n
+  res<-filter(x0,(n-1)/n,method="recursive",sides=1)
+  as.numeric(res)
+}
+
+# fast rsi
+rsi<-function(x,n){
+  dimnames(x)<-NULL
+  abs_x<-abs(x)
+  xup<-(abs_x+x)/2 # same as pmax(x,0) but faster, no dimnames
+  xdn<-(abs_x-x)/2 # same as pmax(-x,0) but faster
+  up<-apply(xup,2,calc_ama,n)
+  dn<-apply(xdn,2,calc_ama,n)
+  rsi<-100-100/(1+up/dn)
+  rsi[which(!is.finite(rsi),arr.ind=TRUE)]<-100
+  rsi
+}
+
+
 vol_pa<-function(x,exclude_zero=(x!=0), holidays = holidayNYSE()) {
   if(is.null(names(x))) 
     good_days <- TRUE 
