@@ -633,6 +633,15 @@ htbl<-function(x,sep=" & ",align="c"){
   )
 }
 
+nvp_tbl<-function(x,sep=" \\\\ ",align="ll"){
+  paste0(
+    "\\begin{tabular}{",align,"} ",
+    paste(names(x),"&",x,collapse=sep),
+    "\\\\ ",
+    "\\end{tabular}"
+  )
+}
+                
 large_bold<-function(x)paste("\\Tstrut {\\large\\bf",x,"}")
 
 pnl_fmt<-function(this){
