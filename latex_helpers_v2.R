@@ -178,6 +178,7 @@ ntable<-function(
   title_align="c",
   frname=function(x)add_latex_env(x,"\\bf"),
   row_end="",
+  final_line="\\\\",
   pos="[c]",
   scale=NULL
 )paste(capture.output({
@@ -209,7 +210,7 @@ ntable<-function(
     line<-paste(x0[[i]],collapse=" & ")
     cat(line,row_sep[i])
   }
-  cat("\\end{tabular} \n")
+  cat(paste0(final_line," end{tabular} \n"))
   if(!is.null(scale))cat(paste0("}\n"))
 }),sep="",collapse="\n")
 
