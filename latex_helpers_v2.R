@@ -285,6 +285,7 @@ df2matrix<-function(
   row_slack=1,
   table_target=FALSE
 ){
+  if(nrow(df)==1)return(matrix(df$text,ncol=1,nrow=1))
   m<-matrix("",nrow=row_count,ncol=col_count)
   gx<-as.vector(col(m))
   gy<-as.vector(row(m))
