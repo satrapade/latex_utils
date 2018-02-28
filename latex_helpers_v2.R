@@ -502,8 +502,12 @@ tikz_plot_matrix<-function(
   if(any(dim(content)!=dim(node)))return("dim(content)!=dim(node)")
   x<-rescale(as.vector(col(content)),xscale)
   y<-rescale(as.vector(row(content)),yscale)
-  xsize<-stri_trim(format(content_size_factor*max(diff(x)),scientific=FALSE))
-  ysize<-stri_trim(format(content_size_factor*max(diff(y)),scientific=FALSE))
+  if(length(x)>1){
+    xsize<-stri_trim(format(content_size_factor*max(diff(x)),scientific=FALSE))
+  } else { xsize<-x}
+  if(length(y)>1){
+    ysize<-stri_trim(format(content_size_factor*max(diff(y)),scientific=FALSE))
+  } else { ysize<-y }
   content_vector<-stri_trim(as.vector(content))
   scaled_content<-ifelse(nchar(content_vector)>0,paste0(
     paste0("\\resizebox*{",xsize,units,"}{",ysize,units,"}{",collapse=""),
@@ -522,7 +526,6 @@ tikz_plot_matrix<-function(
     "}"
   )
 }
-
 
 
 color_ramp<-function(x,from="white",to="red"){
