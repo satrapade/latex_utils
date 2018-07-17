@@ -141,7 +141,7 @@ make_png_plot<-function(plot_expr,height="2cm",width="3cm",envir=parent.frame())
 web_png<-function(url,height="2cm",width="3cm")paste(capture.output({
   #paste0(getwd(),"/figure")
   fname<-gsub("\\","/",tempfile(pattern = "web", tmpdir=make_full_directory("figure"),fileext = ".png"),fixed=TRUE)
-  download.file(url,fname)
+  download.file(url,fname,mode="wb")
   cat("\\begin{minipage}{",width,"}\n")
   cat(paste0("\\includegraphics[height=",height,",width=",width,"]{",fname,"}\n"),sep="")
   cat("\\end{minipage}\n")
