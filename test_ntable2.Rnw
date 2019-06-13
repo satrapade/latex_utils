@@ -1,0 +1,302 @@
+\documentclass{article}
+
+<<,cache=FALSE, eval=TRUE, echo=FALSE, message=FALSE, warning=FALSE, results="hide">>=
+require(Hmisc)
+require(data.table)
+require(stringi)
+require(magrittr)
+require(purrr)
+require(scales)
+
+#stri_replace_all(str="\phantom{+}@x@",replacement=x,fixed="@x@")
+
+#
+# this is used to quicly create vectors of strings from a template and
+# a namespace. especially handy when creating copy-down formulae for 
+# excel and much faster than macro expansion because no parse. also
+# useful to produce parametrized SQL queries. all-in useful
+#
+expand_template<-function(
+  txt="SUMPRODUCT(@x@,@y@)/SUMPRODUCT(@y@,@y@)",
+  ns=list(
+    x=paste0("v",1:10),
+    y=paste0("k",1:20)
+  )
+){
+  tgt<-paste0("@",names(ns),"@")
+  res<-txt
+  for(i in seq_along(ns)){
+    res<-stri_replace_all(str=res,replacement=ns[[i]],fixed=tgt[i])
+  }
+  res
+}
+
+# create a template function
+tlt<-function(template="\\multicolumn{1}{r}{@x@}"){
+  list(function(x)expand_template(txt=template,ns=list(x=x)))
+}
+
+
+m2rc<-function(m)data.table(col=as.vector(col(m)),row=as.vector(row(m)),value=as.vector(m))
+
+cell_color<-function(t,c,model="[HTML]")paste0("\\cellcolor",model,"{",c,"}",t)
+
+#
+# render data.table to latex
+# column attributes:
+#   hdr   header
+#   aln   alignment string
+#   fmt   formatting function
+#
+# row attributes:
+#   row_term named vector of row texts
+#
+ntable2<-function(x){
+  
+  # default values
+  param<-list(
+    default_fmt_fun=as.character,
+    default_aln="l",
+    default_post_row="",
+    default_pre_row="",
+    show_header=TRUE,
+    center=FALSE,
+    title=NULL,
+    color=NULL
+  ) %>% 
+  {modifyList(.,attributes(x)[intersect(names(.),names(attributes(x)))])}
+  
+  # hdr attribute: header strings
+  table_headers <- mapply(attr_getter("hdr"),x) %>%
+    {map2(.,mapply(list,names(x)) ,c)} %>% 
+    {map(.,head,1)}
+  
+  # aln attribute: aligment
+  table_alns <- mapply(attr_getter("aln"),x) %>%
+    {map2(.,rep(param$default_aln,ncol(x)),c)} %>%
+    {map(.,head,1)}
+
+  # fmt attribute: function to apply to data
+  table_fmt <- mapply(attr_getter("fmt"),x) %>%
+    {map2(.,rep(list(param$default_fmt_fun),ncol(x)),c)} %>% 
+    {map(.,pluck,1)}
+  
+  # text to add after the row's end
+  table_post_row <- data.table(row=1:nrow(x),what=param$default_post_row) %>%
+    {rbind(.,data.table(attributes(x)$post_row))} %>%
+    {.[,.(what=reduce(what,paste0)),keyby="row"]} %>%
+    {mapply(list,.$what,USE.NAMES = FALSE)}
+  
+  # text to add before the row's start
+  table_pre_row <- data.table(row=1:nrow(x),what=param$default_pre_row) %>%
+    {rbind(.,data.table(attributes(x)$pre_row))} %>%
+    {.[,.(what=reduce(what,paste0)),keyby="row"]} %>%
+    {mapply(list,.$what,USE.NAMES = FALSE)}
+  
+  # functions to apply to individual cells  
+  cell_modifiers <- attributes(x)$cell_env %>%
+    {if(!is.null(.)){.[,.(col,row,fun)]}else{NULL}} %>%
+    {rbind(data.table(col=1,row=1,fun=identity),.)} %>%
+    {purrr::transpose(.)}
+    
+  # apply each formatting function to each column, 
+  # then each cell modifier to each cell
+  # add & and end-of-line stuff
+  # to make a list of rows
+  table_rows<- map2(table_fmt,map(x,list),do.call) %>%
+    {reduce(cell_modifiers,function(a,m)modify_in(a,list(m$col,m$row),m$fun),.init=.)} %>%
+    {pmap(.l=.,.f=paste,sep=" & " )} %>%
+    {map2(.,rep(list("\\\\"),length(.)),paste,sep=" ")} %>%
+    {map2(table_pre_row,.,paste,sep=" ")} %>%
+    {map2(.,table_post_row,paste,sep=" ")}
+    
+  # a title bar
+  table_title<-if(!is.null(param$title)){
+        expand_template(
+          "
+          \\hline \\rowcolor{gray!20} \\multicolumn{@n@}{c}{@title@} \\\\ \\hline
+          ",ns=list(
+          n=ncol(x),
+          title=attributes(x)$title
+        ))
+  }else{""}
+  
+  
+  # defined colors
+  table_colors<-if(!is.null(param$color)){
+    expand_template(" \\definecolor{@name@}{rgb}{@r@,@g@,@b@} ",ns=param$color)
+  }else{""}
+  
+  
+  latex_table<-expand_template(
+    "
+    @table_colors@ \n
+    \\begin{tabular}{@align@} \n
+      @title@ \n
+      @table_header@ \\\\ \n
+      @table_body@ \n
+    \\end{tabular} \n
+    ",
+    ns=list(
+      table_colors=reduce(table_colors,paste,sep="\n"),
+      table_header=if(param$show_header){reduce(table_headers,paste,sep=" & ")}else{""},
+      table_body=reduce(table_rows,paste,sep="\n"),
+      align=reduce(table_alns,paste,sep=""),
+      title=table_title
+    )
+  )
+  
+  if(param$center){
+    latex_table<-expand_template(
+      "
+      \\begin{center}
+      @table@
+      \\end{center}
+      ",
+      ns=list(table=latex_table)
+    )
+  }
+  
+  latex_table
+  
+}
+
+
+@
+\usepackage[portrait, headheight = 0cm, margin=0.25cm, top = 0.25cm]{geometry} 
+\usepackage[export]{adjustbox} 
+\usepackage{graphicx}
+\usepackage[dvipsnames,table]{xcolor} % [dvipsnames,table] for setting colors \usepackage{amsmath} \usepackage{xfrac}
+\usepackage{tikz}
+\usetikzlibrary{shapes.geometric}
+\usetikzlibrary{shapes.misc}
+\begin{document}
+
+\title{A replacement for {\tt ntable}}
+\author{Nick Nassuphis}
+\maketitle
+
+\newpage
+\section{{\tt ntable2} is a replacement for {\tt ntable}}
+
+\begin{enumerate}
+\item {\tt ntable} is used to render {\tt data.table}s. the implementation is quite clunky
+\item {\tt data.table} offers much improvement handling of attributes, attribute-related helper 
+functions are now irrelevant
+\item {\tt ntable} used quoted expressions for rendering, the environment they are evaluated in
+is implied and confusing
+\end{enumerate}
+
+\newpage
+\section{tests}
+<<,include =TRUE, cache=FALSE, eval=TRUE, echo=TRUE, message=FALSE, warning=FALSE, results="markup">>=
+x<-data.table(
+  n1=structure(
+    seq(-10,10,length.out=10),
+    hdr="testing123",
+    aln="|l",
+    fmt= .%>%{expand_template("{\\tt @x@}",list(x=comma(.,accuracy = 0.1)))}
+  ),
+  n2=structure(
+    1:10,
+    aln="|c|"
+  )
+) %>%
+{structure(.,
+  title="sometitle",
+  aln="r",
+  post_row=rbind(
+    data.table(row=1:nrow(.),what="\\hline ")
+  ),
+  pre_row=rbind(
+    data.table(row=which(.$n2%%2==1),what="\\rowcolor{gray!20}"),
+    data.table(row=which(.$n2%%2==0),what="\\rowcolor{white}"),
+    data.table(row=1,what="\\hline ")
+  ),
+  cell_env=rbind(
+    data.table(row=1:4,col=1:2,fun=list(partial(cell_color,c="6195C9")))
+  )
+)}
+
+
+
+@
+
+
+\Sexpr{ntable2(structure(data.table(
+  v1=ntable2(x),
+  v2=ntable2(structure(x,title="another title",cell_env=NULL)),
+  v3=ntable2(structure(x,title="another title",cell_env=data.table(
+    row=rep(1:nrow(x),each=ncol(x)),
+    col=rep(1:ncol(x),times=nrow(x)),
+    fun=list(partial(cell_color,c="FF2020"))
+  )))
+),center=TRUE))}
+
+\vskip 5mm
+
+\Sexpr{ntable2(structure(x,cell_env=NULL))}
+
+\newpage
+\section{color-coding a correlation matrix}
+<<,cache=FALSE, eval=TRUE, echo=FALSE, message=FALSE, warning=FALSE, results="hide">>=
+r<-matrix(rnorm(100*10),ncol=10)
+cm<-cor(r)
+
+dot<-function(col,size="0.5ex",raise="0.2ex"){
+  paste0(
+    "\\raisebox{",raise,"}{\\tikz \\fill[",col,"] (0,0) circle (",size,");}"
+  )
+}
+
+signed_ramp<-function(x,from="white",to="red"){
+  gcr<-color_ramp(abs(x),"white","green")
+  rcr<-color_ramp(abs(x),"white","red")
+  ifelse(x>0,gcr,rcr)
+}
+
+
+dcm<-structure(
+  data.table(cm),
+  default_aln="m{1.25cm}",
+  title="a correlation matrix",
+  show_header=FALSE,
+  default_fmt_fun=function(x)comma(100*as.numeric(x),accuracy=0.1),
+  color=fread("
+  name,   r,    g,    b
+  color1, 0.4,  0.5,  0.1 
+  color2, 0.4,  0.5,  0.1 
+  "),
+  cell_env=rbind(
+    m2rc(cm)[value>0][,.(col,row,fun=tlt("\\phantom{+}@x@"))],
+    m2rc(cm)[col!=row][value<(-0.1)][,.(col,row,fun=tlt("\\cellcolor[HTML]{FF0000}@x@"))],
+    m2rc(cm)[col!=row][value>(+0.1)][,.(col,row,fun=tlt("\\cellcolor[HTML]{00FF00}@x@"))],
+    m2rc(cm)[,.(col,row,fun=tlt("\\multicolumn{1}{r}{@x@}"))],
+    m2rc(cm)[col!=row][abs(value)<(+0.1)][,.(col,row,fun=tlt("\\raisebox{0.2ex}{\\tikz \\fill[color1] (0,0) circle (0.5ex);}"))]
+  )
+)
+
+@
+
+a matrix 
+
+\Sexpr{ntable2(structure(dcm,center=TRUE))}
+
+\Sexpr{ntable2(structure(
+  dcm,
+  center=TRUE,
+  cell_env= m2rc(cm)[col!=row][abs(value)<(+0.1)][,.(col,row,
+    fun=list(function(x)dot("blue"))
+  )]
+))}
+
+
+\Sexpr{ntable2(structure(
+  dcm,
+  center=TRUE,
+  cell_env= m2rc(cm)[!(col %in% 1:5 & row %in% 1:5)][,.(col,row,
+    fun=list(function(x)dot("blue"))
+  )]
+))}
+
+\end{document}
